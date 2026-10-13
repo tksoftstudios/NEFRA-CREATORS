@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Navbar from './components/Navbar';
 import Top10Directory from './components/directory/Top10Directory';
-import CreatorConnect from './components/creator/CreatorConnect';
+import CreatorPortal from './components/creator/CreatorPortal';
 import BusinessJobPortal from './components/business/BusinessJobPortal';
 import ConfigModal from './components/common/ConfigModal';
 import { SEED_CREATORS } from './data/seedCreators';
@@ -136,7 +136,7 @@ export default function App() {
         )}
 
         {currentTab === 'creator' && (
-          <CreatorConnect
+          <CreatorPortal
             apiKey={apiKey}
             googleClientId={googleClientId}
             onCreatorEnrolled={handleCreatorEnrolled}

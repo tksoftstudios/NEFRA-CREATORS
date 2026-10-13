@@ -99,18 +99,18 @@ export default function Navbar({ currentTab, setCurrentTab, apiKey, onOpenConfig
               padding: '8px 18px',
               borderRadius: 'var(--radius-full)',
               border: 'none',
-              background: currentTab === 'creator' ? 'linear-gradient(135deg, #ff0033, #cc0000)' : 'transparent',
+              background: currentTab === 'creator' ? '#2563eb' : 'transparent',
               color: currentTab === 'creator' ? '#ffffff' : 'var(--text-muted)',
               fontFamily: 'var(--font-heading)',
               fontWeight: currentTab === 'creator' ? '700' : '500',
               fontSize: '0.88rem',
               cursor: 'pointer',
-              boxShadow: currentTab === 'creator' ? '0 0 18px rgba(255, 0, 51, 0.4)' : 'none',
+              boxShadow: currentTab === 'creator' ? '0 0 14px rgba(37, 99, 235, 0.4)' : 'none',
               transition: 'all var(--transition-fast)'
             }}
           >
-            <YouTubeIcon size={17} color="#ffffff" />
-            Connect Creator
+            <YouTubeIcon size={17} color={currentTab === 'creator' ? '#ffffff' : '#ff0033'} />
+            Creator Hub
           </button>
 
           <button

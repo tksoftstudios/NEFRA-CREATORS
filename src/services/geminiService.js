@@ -477,3 +477,74 @@ function mockRankingFallback(jobCard, candidateCreators) {
     };
   });
 }
+
+/**
+ * Generates a tailored, professional pitch proposal from a creator to a brand.
+ * Grounded in creator's 3 analyzed videos, audience demographics, and brand deliverables.
+ */
+export async function generateCreatorPitchWithGemini(apiKey, creator, campaign) {
+  if (!creator || !campaign) {
+    throw new Error('Creator profile and campaign details are required to generate pitch.');
+  }
+
+  // Fallback if no API key
+  if (!apiKey || apiKey.trim() === '') {
+    return mockPitchFallback(creator, campaign);
+  }
+
+  try {
+    const ai = new GoogleGenAI({ apiKey: apiKey.trim() });
+
+    const recentVideoSample = (creator.recentVideos || [])
+      .slice(0, 3)
+      .map((v, i) => `#${i + 1} "${v.title}" (${v.viewCountFormatted || ''} views)`)
+      .join('; ');
+
+    const prompt = `You are an elite talent agent writing a custom, high-converting partnership pitch for a YouTube creator applying to a brand campaign.
+
+CREATOR DETAILS:
+- Name / Channel: ${creator.title} (${creator.handle || ''})
+- Niche / Category: ${creator.categoryLabel || creator.category}
+- Audience: ${creator.audience?.demographic || 'Global & JAPAC creators & fans'}
+- Subscriber Count: ${creator.subscribersFormatted || creator.subscriberCount || 'Verified Creator'}
+- Audited Content Style: ${creator.aiSummary || 'High quality original video creator'}
+- Recent 3 Audited Videos: ${recentVideoSample || 'Original high-retention uploads'}
+- Tags: ${(creator.tags || []).join(', ')}
+
+BRAND CAMPAIGN DETAILS:
+- Campaign Title: ${campaign.title}
+- Brand Name: ${campaign.brandName}
+- Target Deliverables: ${campaign.deliverable || campaign.deliverables?.join(', ') || 'Video content'}
+- Budget: ${campaign.budgetFormatted || campaign.budget || 'Competitive'}
+- Campaign Goal / Persona: ${campaign.description || ''} (Target: ${campaign.targetPersona || 'Target audience'})
+
+INSTRUCTIONS:
+Write a concise, compelling 3-paragraph pitch written directly in first-person ("I / my team") addressed to ${campaign.brandName}.
+Paragraph 1: Warm introduction, specific appreciation for the brand's campaign, and why my channel (${creator.title}) is the natural voice for this.
+Paragraph 2: A concrete, creative concept idea tailored directly to my audited video style and what my audience loves (mention an angle relevant to the required deliverables).
+Paragraph 3: Proposed timeline, commitment to high production quality, and clear call to action to discuss next steps.
+
+Do NOT include generic placeholders like "[Insert Date]". Output only the polished pitch text ready to send.`;
+
+    const pitchText = await generateWithGeminiFallback(ai, prompt, {
+      temperature: 0.7,
+      maxOutputTokens: 900
+    });
+
+    return pitchText.trim();
+  } catch (err) {
+    console.warn(`[Gemini Engine] Pitch generation fallback triggered: ${err.message}`);
+    return mockPitchFallback(creator, campaign);
+  }
+}
+
+function mockPitchFallback(creator, campaign) {
+  return `Hi ${campaign.brandName} team!
+
+I'm thrilled to submit this proposal for "${campaign.title}". As the creator behind ${creator.title} (${creator.subscribersFormatted || 'creator community'}), my channel focuses heavily on ${creator.categoryLabel || 'authentic storytelling'} with high organic retention. Having reviewed your goal to reach ${campaign.targetPersona || 'passionate audiences'}, our community's demographics align seamlessly.
+
+For this collaboration, I propose weaving your message directly into a signature, high-engagement video format. Drawing inspiration from my recent uploads like "${creator.recentVideos?.[0]?.title || 'my featured video'}", we will craft an organic, narrative-driven segment showcasing your core value proposition without feeling like an interruption.
+
+We are ready to deliver ${campaign.deliverable || 'the agreed deliverables'} within ${campaign.timeline || '2-3 weeks'}, including high-res footage, custom thumbnails, and tracked community links. Looking forward to discussing the creative brief together!`;
+}
+
