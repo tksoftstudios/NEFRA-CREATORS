@@ -46,7 +46,7 @@ We have shifted from a hackathon concept into a **real-world, production-ready g
 
 ## 🛠️ Technology Stack & Framework Standard
 
-- **Frontend:** **React 19** with **Preline UI** (`preline.co` component library) and **Tailwind CSS**.
+- **Frontend:** **React 19** with **AntD UI** (`AntD.co` component library) and **Tailwind CSS**.
 - **Backend Service:** **Node.js + Express** API architecture designed to seamlessly integrate with Firebase (Cloud Functions / Cloud Run / Firestore / Auth).
 - **AI Intelligence:** **Google Gemini 2.5 / 3 Flash** for:
   - Deep multimodal video critiques & channel safety audits
@@ -140,7 +140,7 @@ We have shifted from a hackathon concept into a **real-world, production-ready g
 
 ### 🌐 Global Discovery: Top 10 Creator Directory
 - [x] Public-facing verified YouTube creator leaderboard across categories (Tech, Music, Gaming, Fitness, Education, Lifestyle).
-- [x] Preline UI modal showcasing video critiques, metrics, **Rate Card packages**, and instant "Order Digital Gig" or "Invite to Campaign" action.
+- [x] AntD UI modal showcasing video critiques, metrics, **Rate Card packages**, and instant "Order Digital Gig" or "Invite to Campaign" action.
 
 ---
 
@@ -153,7 +153,7 @@ We have shifted from a hackathon concept into a **real-world, production-ready g
    - Add Rate Card data structure (Shorts, Integration, Dedicated Video pricing & turnaround).
    - Add Creator country/residence and travel modality fields.
    - Add Job Campaign modality (`online`, `hybrid`, `physical`) and target country whitelisting.
-3. **Phase 3: Preline UI Component Implementation**
+3. **Phase 3: AntD UI Component Implementation**
    - Rate Card configuration widget in Creator Hub.
    - Modality & Country restriction selectors in Brand AI Job Builder.
    - Custom Bidding modal for Creators applying to jobs.
@@ -161,3 +161,20 @@ We have shifted from a hackathon concept into a **real-world, production-ready g
 4. **Phase 4: Node.js Express / Firebase Backend Integration**
    - Escrow state machine (`funded` -> `in_progress` -> `delivered` -> `approved` -> `released`).
    - Fee calculation engine (10–15% platform take-rate).
+
+Use following for antd MCP
+
+Tools
+Tool	Description
+antd_list	Enumerate available components
+antd_info	Retrieve component property specifications
+antd_doc	Fetch complete documentation
+antd_demo	Access runnable code examples
+antd_token	Query design token values
+antd_design_md	Fetch the design-language document
+antd_semantic	Inspect DOM structure and styling hooks
+antd_changelog	Analyze API changes across versions
+Prompts
+Prompt	Description
+antd-expert	Positions the agent as an Ant Design specialist
+antd-page-generator	Assists with component-based page creation

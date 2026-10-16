@@ -1,0 +1,24 @@
+{
+  "name": "google-signin-onboarding",
+  "url": "http://localhost:5173",
+  "steps": [
+    { "waitFor": "text=Verify Your YouTube Channel via Google" },
+    { "pause": 600 },
+    { "click": "role=button[name='Sign in with Google & Verify YouTube']", "pauseAfter": 400 },
+    { "waitFor": "text=Choose an account", "pauseAfter": 300 },
+    { "click": "text=Kaveen Kudagala", "pauseAfter": 400 },
+    { "waitFor": "role=button[name='Allow & Link YouTube']", "pauseAfter": 600 },
+    { "click": "role=button[name='Allow & Link YouTube']" },
+    { "waitFor": "text=VERIFIED OWNER", "pauseAfter": 1100 },
+    { "click": "role=button[name='Continue']", "pauseAfter": 400 },
+    { "waitFor": "text=Creator Modality & Geographic Reach", "pauseAfter": 300 },
+    { "click": "text=Physical (On-site Expos & Keynotes)", "pauseAfter": 500 },
+    { "click": "role=button[name='Continue']", "pauseAfter": 400 },
+    { "waitFor": "text=Configure Your Initial Rate Card", "pauseAfter": 900 },
+    { "click": "role=button[name='Continue']", "pauseAfter": 400 },
+    { "waitFor": "text=Escrow Smart Vault Guarantee", "pauseAfter": 300 },
+    { "click": "role=button[name='Stripe Express']", "pauseAfter": 400 },
+    { "click": "role=button[name='Complete Setup']", "pauseAfter": 400 },
+    { "waitFor": "text=Welcome to NEFRA", "pauseAfter": 2200 }
+  ]
+}
