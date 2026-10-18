@@ -30,7 +30,7 @@ export function getYouTubeAuthProvider() {
   // Request view-only permission to the user's YouTube channel
   provider.addScope('https://www.googleapis.com/auth/youtube.readonly');
   provider.setCustomParameters({
-    prompt: 'consent',
+    prompt: 'select_account consent',
     access_type: 'offline'
   });
   return provider;
@@ -39,7 +39,8 @@ export function getYouTubeAuthProvider() {
 /**
  * Sign in with Google, grant YouTube permission, and verify ownership on the server
  */
-export async function connectYouTubeWithServer({ creatorId = 'creator_01' }) {
+export async function connectYouTubeWithServer({ creatorId = null } = {}) {
+  const targetId = creatorId || auth.currentUser?.uid || 'creator_01';
   // 1. Google OAuth Sign-In Popup with youtube.readonly scope
   const provider = getYouTubeAuthProvider();
   let result;
@@ -80,7 +81,7 @@ export async function connectYouTubeWithServer({ creatorId = 'creator_01' }) {
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      creatorId,
+      creatorId: targetId,
       accessToken,
       googleUser
     })
@@ -95,7 +96,7 @@ export async function connectYouTubeWithServer({ creatorId = 'creator_01' }) {
 
   // 3. Client-side Cloud Firestore update (confirmation write)
   try {
-    const creatorRef = doc(db, 'creators', creatorId);
+    const creatorRef = doc(db, 'creators', targetId);
     await setDoc(creatorRef, {
       youtubeConnected: true,
       verified: true,
@@ -139,16 +140,17 @@ export async function connectYouTubeWithServer({ creatorId = 'creator_01' }) {
 /**
  * Disconnect YouTube Channel on Server & Cloud Firestore
  */
-export async function disconnectYouTubeWithServer({ creatorId = 'creator_01' }) {
+export async function disconnectYouTubeWithServer({ creatorId = null } = {}) {
+  const targetId = creatorId || auth.currentUser?.uid || 'creator_01';
   const res = await fetch('/api/youtube/disconnect', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ creatorId })
+    body: JSON.stringify({ creatorId: targetId })
   });
 
   // Client Firestore sync
   try {
-    const creatorRef = doc(db, 'creators', creatorId);
+    const creatorRef = doc(db, 'creators', targetId);
     await setDoc(creatorRef, {
       youtubeConnected: false,
       youtube: null,

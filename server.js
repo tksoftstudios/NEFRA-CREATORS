@@ -122,6 +122,17 @@ app.post('/api/vertex/generateContent', async (req, res) => {
   }
 });
 
+// Server-Side AI Image Generation Proxy
+app.post('/api/ai/generateImage', async (req, res) => {
+  try {
+    const { handleGenerateImage } = await import('./src/server/imageHandler.js');
+    const result = await handleGenerateImage(req.body);
+    return res.status(result.status).json(result.data);
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`===============================================`);

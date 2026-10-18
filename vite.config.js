@@ -140,6 +140,19 @@ function nefraApiPlugin() {
           }
         }
 
+        // Server-Side AI Image Generation Proxy
+        if (req.url === '/api/ai/generateImage') {
+          try {
+            const { handleGenerateImage } = await import('./src/server/imageHandler.js');
+            const result = await handleGenerateImage(body);
+            res.statusCode = result.status;
+            return res.end(JSON.stringify(result.data));
+          } catch (err) {
+            res.statusCode = 500;
+            return res.end(JSON.stringify({ error: err.message }));
+          }
+        }
+
         next();
       });
     }

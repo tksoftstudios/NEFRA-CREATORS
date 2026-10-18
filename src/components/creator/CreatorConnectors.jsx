@@ -17,6 +17,7 @@ import {
   connectYouTubeWithServer, 
   disconnectYouTubeWithServer 
 } from '../../services/youtubeOAuthService';
+import { AutoAuditModal } from './AutoAuditModal';
 
 function YoutubeIcon({ className = "w-5 h-5", size, ...props }) {
   const s = size ? `${size}px` : undefined;
@@ -181,12 +182,15 @@ function FormattedErrorBox({ message }) {
 
 export function CreatorConnectors({
   creator,
-  onUpdateCreator
+  onUpdateCreator,
+  onUpdateRateCards,
+  preferredCurrency = 'USD'
 }) {
   const [isConnectModalOpen, setIsConnectModalOpen] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [errorMessage, setErrorMessage] = useState(null);
   const [toastMessage, setToastMessage] = useState(null);
+  const [autoAuditChannel, setAutoAuditChannel] = useState(null);
 
   const showToast = (msg) => {
     setToastMessage(msg);
@@ -207,7 +211,7 @@ export function CreatorConnectors({
 
       const channel = res.channel;
 
-      onUpdateCreator({
+      const updated = {
         ...creator,
         name: channel.title,
         handle: channel.handle,
@@ -222,7 +226,9 @@ export function CreatorConnectors({
         googleAccount: res.googleUser,
         serverVerified: true,
         firestoreSaved: true
-      });
+      };
+
+      onUpdateCreator(updated);
 
       confetti({
         particleCount: 70,
@@ -230,14 +236,33 @@ export function CreatorConnectors({
         origin: { y: 0.5 }
       });
 
-      showToast(`Connected: ${channel.title} (${channel.handle}) synced to Cloud Firestore!`);
       setIsConnectModalOpen(false);
+
+      // Automatically launch Automatic Audit Process!
+      setAutoAuditChannel(channel);
     } catch (e) {
       console.error(e);
       setErrorMessage(e.message || "Failed to verify YouTube channel with Google OAuth.");
     } finally {
       setIsConnecting(false);
     }
+  };
+
+  const handleAutoAuditComplete = ({ audit, rateCards }) => {
+    onUpdateCreator({
+      ...creator,
+      audit,
+      aiScore: audit.aiScore || creator.aiScore || 92,
+      category: audit.category || creator.category,
+      tags: (audit.nicheTags && audit.nicheTags.length > 0) ? audit.nicheTags : creator.tags
+    });
+
+    if (onUpdateRateCards && rateCards?.length) {
+      onUpdateRateCards(rateCards);
+    }
+
+    setAutoAuditChannel(null);
+    showToast(`🎉 Verified: ${creator.name}! Automatic AI Audit complete & rate cards calibrated.`);
   };
 
   const handleDisconnectYouTube = async () => {
@@ -549,6 +574,14 @@ export function CreatorConnectors({
           </div>
         </div>
       </Dialog>
+
+      <AutoAuditModal
+        isOpen={Boolean(autoAuditChannel)}
+        channel={autoAuditChannel}
+        creator={creator}
+        onComplete={handleAutoAuditComplete}
+        preferredCurrency={preferredCurrency}
+      />
     </div>
   );
 }

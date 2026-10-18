@@ -3,14 +3,17 @@ import { Dialog } from '../ui/Dialog';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
 import { formatCents } from '../../lib/utils';
-import { ShieldCheck, Play, Award, CheckCircle2 } from 'lucide-react';
+import { formatCurrency } from '../../services/currencyService';
+import { ShieldCheck, Play, Award, CheckCircle2, MessageCircle } from 'lucide-react';
 
 export function CreatorDetailModal({
   creator,
   isOpen,
   onClose,
   rateCards = [],
-  onHirePackage
+  onHirePackage,
+  onOpenChat,
+  preferredCurrency = 'USD'
 }) {
   if (!creator) return null;
 
@@ -26,26 +29,43 @@ export function CreatorDetailModal({
     >
       <div className="space-y-6">
         {/* Creator Header Card */}
-        <div className="flex items-center space-x-4 bg-[#18181b] p-4 rounded-lg border border-[#27272a]">
-          <img
-            src={creator.avatar}
-            alt={creator.name}
-            className="w-16 h-16 rounded-full object-cover border border-[#27272a]"
-          />
-          <div className="space-y-1">
-            <div className="flex items-center space-x-2">
-              <h4 className="text-base font-semibold text-[#fafafa]">{creator.name}</h4>
-              <Badge variant="action" className="text-[10px]">Verified YouTube</Badge>
-            </div>
-            <p className="text-xs text-[#a1a1aa]">{creator.bio}</p>
-            <div className="flex items-center space-x-3 text-xs text-[#71717a] pt-1">
-              <span><strong>{creator.subscribersFormatted}</strong> Subscribers</span>
-              <span>•</span>
-              <span><strong>{creator.avgViewsFormatted}</strong> Avg Views</span>
-              <span>•</span>
-              <span className="text-[#e11d48] font-semibold">{creator.aiScore}/100 AI Score</span>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[#18181b] p-4 rounded-lg border border-[#27272a]">
+          <div className="flex items-center space-x-4">
+            <img
+              src={creator.avatar}
+              alt={creator.name}
+              className="w-16 h-16 rounded-full object-cover border border-[#27272a]"
+            />
+            <div className="space-y-1">
+              <div className="flex items-center space-x-2">
+                <h4 className="text-base font-semibold text-[#fafafa]">{creator.name}</h4>
+                <Badge variant="action" className="text-[10px]">Verified YouTube</Badge>
+              </div>
+              <p className="text-xs text-[#a1a1aa]">{creator.bio}</p>
+              <div className="flex items-center space-x-3 text-xs text-[#71717a] pt-1">
+                <span><strong>{creator.subscribersFormatted}</strong> Subscribers</span>
+                <span>•</span>
+                <span><strong>{creator.avgViewsFormatted}</strong> Avg Views</span>
+                <span>•</span>
+                <span className="text-[#e11d48] font-semibold">{creator.aiScore}/100 AI Score</span>
+              </div>
             </div>
           </div>
+
+          {onOpenChat && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                onOpenChat(creator, `Hi ${creator.name}! I'm interested in collaborating on a video campaign. Let's discuss custom gig deliverables.`);
+                onClose();
+              }}
+              className="border-[#3b82f6]/40 text-[#3b82f6] hover:bg-[#3b82f6]/10 text-xs space-x-1.5 cursor-pointer shrink-0"
+            >
+              <MessageCircle size={13} />
+              <span>Chat / Custom Gig</span>
+            </Button>
+          )}
         </div>
 
         {/* 3-Video Multimodal Audit Scorecard */}
@@ -80,20 +100,26 @@ export function CreatorDetailModal({
 
           {/* Videos Carousel / List */}
           <div className="space-y-2 pt-1">
-            {(creator.recentVideos || []).map((video, idx) => (
-              <div key={video.id || idx} className="p-3 bg-[#18181b]/50 border border-[#27272a] rounded-lg flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 rounded bg-[#27272a] flex items-center justify-center text-[#e11d48]">
-                    <Play size={14} />
-                  </div>
-                  <div>
-                    <p className="text-xs font-medium text-[#fafafa]">{video.title}</p>
-                    <p className="text-[10px] text-[#71717a]">{video.views} views • Gemini Verified</p>
-                  </div>
-                </div>
-                <Badge variant="outline" className="text-[10px]">Audited</Badge>
+            {(!creator.recentVideos || creator.recentVideos.length === 0) ? (
+              <div className="p-4 bg-[#18181b]/40 border border-[#27272a] rounded-lg text-center text-xs text-[#71717a]">
+                No public video uploads detected yet on this channel.
               </div>
-            ))}
+            ) : (
+              creator.recentVideos.map((video, idx) => (
+                <div key={video.id || idx} className="p-3 bg-[#18181b]/50 border border-[#27272a] rounded-lg flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-8 h-8 rounded bg-[#27272a] flex items-center justify-center text-[#e11d48]">
+                      <Play size={14} />
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium text-[#fafafa]">{video.title}</p>
+                      <p className="text-[10px] text-[#71717a]">{video.views} views • Vertex AI Verified</p>
+                    </div>
+                  </div>
+                  <Badge variant="outline" className="text-[10px]">Audited</Badge>
+                </div>
+              ))
+            )}
           </div>
         </div>
 
@@ -127,7 +153,7 @@ export function CreatorDetailModal({
                 <div className="flex sm:flex-col items-center sm:items-end justify-between shrink-0 gap-2">
                   <div className="text-right">
                     <span className="text-sm font-bold text-[#fafafa] tabular-nums">
-                      {formatCents(pkg.priceCents)}
+                      {formatCurrency(pkg.priceCents, preferredCurrency)}
                     </span>
                     <p className="text-[10px] text-[#71717a]">100% Escrow</p>
                   </div>

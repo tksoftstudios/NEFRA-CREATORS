@@ -3,7 +3,7 @@ import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
 import { formatCents } from '../../lib/utils';
-import { PlusCircle, Search, ShieldCheck, Briefcase, MessageSquare, ArrowRight } from 'lucide-react';
+import { PlusCircle, Search, ShieldCheck, Briefcase, MessageSquare, ArrowRight, Wand2 } from 'lucide-react';
 
 export function BrandDashboard({
   campaigns = [],
@@ -27,7 +27,11 @@ export function BrandDashboard({
           <p className="text-xs text-[#71717a] mt-1">Hire vetted YouTube creators with 100% pre-funded escrow milestones.</p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button variant="outline" size="sm" onClick={() => onNavigate('content-creator')} className="border-[#e11d48]/40 text-[#e11d48] hover:bg-[#e11d48]/10 space-x-1 cursor-pointer">
+            <Wand2 size={13} />
+            <span>AI Content Creator</span>
+          </Button>
           <Button variant="outline" size="sm" onClick={() => onNavigate('creators')}>
             Find creators
           </Button>
@@ -124,8 +128,8 @@ export function BrandDashboard({
 
               <div className="flex items-center space-x-3">
                 <span className="text-xs text-[#71717a]">{camp.bidsCount || 0} bids received</span>
-                <Button variant="outline" size="sm" onClick={() => onNavigate('creators')}>
-                  Review matches
+                <Button variant="outline" size="sm" onClick={() => onNavigate('campaigns')}>
+                  Review proposals
                 </Button>
               </div>
             </div>

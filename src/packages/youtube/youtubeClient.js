@@ -36,7 +36,7 @@ export async function verifyYouTubeChannel(accessToken) {
   if (uploadsPlaylistId) {
     try {
       const playlistRes = await fetch(
-        `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=${uploadsPlaylistId}&maxResults=4`,
+        `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=${uploadsPlaylistId}&maxResults=25`,
         {
           headers: {
             Authorization: `Bearer ${accessToken}`,

@@ -3,7 +3,7 @@ import { Card } from '../ui/Card';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
 import { Tabs } from '../ui/Tabs';
-import { formatCents } from '../../lib/utils';
+import { formatCents, deduplicateCreators } from '../../lib/utils';
 import { Search, ShieldCheck, ArrowRight, Play } from 'lucide-react';
 
 export function PublicDirectory({
@@ -12,6 +12,8 @@ export function PublicDirectory({
 }) {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+
+  const uniqueCreators = deduplicateCreators(creators);
 
   const standardCategories = [
     { id: 'all', label: 'All categories' },
@@ -26,12 +28,12 @@ export function PublicDirectory({
 
   const categories = standardCategories.filter(cat => 
     cat.id === 'all' || 
-    creators.some(c => c.category === cat.id) ||
+    uniqueCreators.some(c => c.category === cat.id) ||
     ['Technology & AI', 'Gaming & Esports', 'Acoustic & Music'].includes(cat.id)
   );
 
 
-  const filteredCreators = creators.filter(c => {
+  const filteredCreators = uniqueCreators.filter(c => {
     const matchesCategory = selectedCategory === 'all' || c.category === selectedCategory;
     const matchesSearch = !searchQuery || 
       c.name.toLowerCase().includes(searchQuery.toLowerCase()) || 

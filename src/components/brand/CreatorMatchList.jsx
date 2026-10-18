@@ -2,7 +2,7 @@ import React from 'react';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
-import { formatCents } from '../../lib/utils';
+import { formatCents, deduplicateCreators } from '../../lib/utils';
 import { Sparkles } from 'lucide-react';
 
 export function CreatorMatchList({
@@ -11,6 +11,8 @@ export function CreatorMatchList({
   onSelectCreator,
   onHirePackage
 }) {
+  const uniqueCreators = deduplicateCreators(creators);
+
   return (
     <div className="space-y-6">
       <div className="border-b border-[#27272a] pb-6">
@@ -23,7 +25,7 @@ export function CreatorMatchList({
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {creators.map((creator, idx) => {
+        {uniqueCreators.map((creator, idx) => {
           const creatorPackages = rateCards.filter(rc => rc.creatorId === creator.id || creator.id === 'creator_01');
           return (
             <Card key={creator.id} className="flex flex-col justify-between space-y-4">

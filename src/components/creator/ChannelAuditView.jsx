@@ -22,9 +22,57 @@ import {
   AlertCircle,
   Globe2,
   Check,
-  Award
+  Award,
+  VideoOff
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
+
+const AUDIT_DEPTH_TIERS = [
+  {
+    id: 'standard',
+    videoCount: 3,
+    creditsCost: 10,
+    label: 'Standard Baseline (3 Videos)',
+    shortLabel: '3 Videos',
+    badge: 'DEFAULT',
+    badgeVariant: 'outline',
+    tagline: 'Last 3 Published Videos',
+    desc: 'Evaluates the 3 most recently published uploads for fast hook and retention baseline.'
+  },
+  {
+    id: 'deep',
+    videoCount: 5,
+    creditsCost: 18,
+    label: 'Deep Multi-Video Scan (5 Videos)',
+    shortLabel: '5 Videos',
+    badge: 'POPULAR',
+    badgeVariant: 'action',
+    tagline: 'Last 5 Published Videos',
+    desc: 'Scans 5 published videos for consistent pacing, narrative flow, and hook variance.'
+  },
+  {
+    id: 'pro',
+    videoCount: 10,
+    creditsCost: 30,
+    label: 'Pro Multimodal Audit (10 Videos)',
+    shortLabel: '10 Videos',
+    badge: 'RECOMMENDED',
+    badgeVariant: 'secondary',
+    tagline: 'Last 10 Published Videos',
+    desc: 'Multi-month cross-format audit benchmarking long-term audience retention and mid-roll stability.'
+  },
+  {
+    id: 'catalogue',
+    videoCount: 20,
+    creditsCost: 50,
+    label: 'Full Catalogue Audit (20 Videos)',
+    shortLabel: '20 Videos',
+    badge: 'ENTERPRISE',
+    badgeVariant: 'outline',
+    tagline: 'Last 20 Published Videos',
+    desc: 'Exhaustive 20-video multimodal analysis for high-tier brand safety certifications and premium pricing.'
+  }
+];
 
 export function ChannelAuditView({
   creator,
@@ -32,6 +80,7 @@ export function ChannelAuditView({
   onDeductCredits,
   onUpdateAudit
 }) {
+  const [selectedDepth, setSelectedDepth] = useState(AUDIT_DEPTH_TIERS[0]);
   const [isAuditing, setIsAuditing] = useState(false);
   const [auditStep, setAuditStep] = useState(0);
   const [isKeyModalOpen, setIsKeyModalOpen] = useState(false);
@@ -111,9 +160,12 @@ export function ChannelAuditView({
   };
 
   const handleRunAudit = async () => {
+    const cost = selectedDepth.creditsCost;
+    const videoLimit = selectedDepth.videoCount;
+
     // 1. Credit Check
-    if (credits !== undefined && credits < 10) {
-      const msg = `Insufficient credits! 10 credits required to run AI Channel Audit (Available: ${credits}). Please refill in your Wallet.`;
+    if (credits !== undefined && credits < cost) {
+      const msg = `Insufficient credits! ${cost} credits required to run ${selectedDepth.label}. Available balance: ${credits} credits. Please refill in your Wallet.`;
       console.warn(`%c⚠️ [Billing Check Failed] ${msg}`, 'color: #ef4444; font-weight: bold;');
       setStatusNotice(msg);
       return;
@@ -124,7 +176,7 @@ export function ChannelAuditView({
     setStatusNotice(null);
     setAuditResultSummary(null);
 
-    console.log(`%c💳 [NEFRA Billing] Initiating AI Multimodal Channel Audit (10 Credits will be deducted upon completion). Available: ${credits}`, 'color: #f59e0b; font-weight: bold; font-size: 13px;');
+    console.log(`%c💳 [NEFRA Billing] Initiating AI Multimodal Channel Audit (${cost} Credits for ${videoLimit} Videos). Available: ${credits}`, 'color: #f59e0b; font-weight: bold; font-size: 13px;');
 
     try {
       // Step 1: Query YouTube telemetry & video streams
@@ -139,15 +191,15 @@ export function ChannelAuditView({
       await new Promise(r => setTimeout(r, 600));
       setAuditStep(4);
 
-      // Step 4: Extract tags & classify category with AI
-      const res = await auditChannelWithGemini(creator, recentVideos);
+      // Step 4: Extract tags & classify category with AI (with custom videoLimit depth)
+      const res = await auditChannelWithGemini(creator, recentVideos, { videoLimit });
 
       // Step 5: Pricing intelligence & demographics synthesis
       setAuditStep(5);
       await new Promise(r => setTimeout(r, 500));
 
       // Deduct credits and update state
-      onDeductCredits?.(10);
+      onDeductCredits?.(cost, `AI Channel Audit (${videoLimit} Videos)`);
       setCurrentAudit(res);
       setAuditResultSummary(res);
       await onUpdateAudit(res);
@@ -158,20 +210,21 @@ export function ChannelAuditView({
         origin: { y: 0.4 }
       });
 
-      const remainingCredits = Math.max(0, credits - 10);
-      console.log(`%c💳 [NEFRA Billing] Successfully deducted 10 Credits! Remaining balance: ${remainingCredits} Credits.`, 'color: #10b981; font-weight: bold; font-size: 14px;');
+      const remainingCredits = Math.max(0, credits - cost);
+      console.log(`%c💳 [NEFRA Billing] Successfully deducted ${cost} Credits! Remaining balance: ${remainingCredits} Credits.`, 'color: #10b981; font-weight: bold; font-size: 14px;');
       console.log(`%c🎉 [AI Audit Results Ready]`, 'color: #e11d48; font-weight: bold; font-size: 14px;', {
         category: res.category,
         aiScore: res.aiScore,
         nicheTags: res.nicheTags,
         demographics: res.demographicBreakdown,
-        engine: res.engine
+        engine: res.engine,
+        auditedVideosCount: res.auditedVideosCount || videoLimit
       });
 
       setStatusNotice(
         res.isLiveGemini
-          ? `Google Cloud Vertex AI evaluated your channel uploads! Deducted 10 Credits (Remaining: ${remainingCredits}). Classified as "${res.category}".`
-          : `AI Channel Audit complete! Deducted 10 Credits (Remaining: ${remainingCredits}). Classified as "${res.category}" with ${res.nicheTags?.length || 0} extracted tags.`
+          ? `Google Cloud Vertex AI evaluated your channel uploads (${res.auditedVideosCount || videoLimit} Videos)! Deducted ${cost} Credits (Remaining: ${remainingCredits}). Classified as "${res.category}".`
+          : `AI Channel Audit complete (${res.auditedVideosCount || videoLimit} Videos)! Deducted ${cost} Credits (Remaining: ${remainingCredits}). Classified as "${res.category}" with ${res.nicheTags?.length || 0} extracted tags.`
       );
     } catch (e) {
       console.error('❌ [ChannelAuditView] Run audit error:', e);
@@ -227,10 +280,88 @@ export function ChannelAuditView({
             className="space-x-1.5 bg-[#e11d48] hover:bg-[#be123c] text-white shadow-sm"
           >
             <Sparkles size={14} className={isAuditing ? "animate-spin" : ""} />
-            <span>{isAuditing ? "Auditing with AI..." : "Re-audit channel (10 Credits)"}</span>
+            <span>
+              {isAuditing 
+                ? `Auditing ${selectedDepth.shortLabel}...` 
+                : `Audit ${selectedDepth.shortLabel} (${selectedDepth.creditsCost} Credits)`}
+            </span>
           </Button>
         </div>
       </div>
+
+      {/* Audit Depth & Credit Allocation Selector */}
+      <Card className="p-4 sm:p-5 border-[#27272a] bg-[#121215]/80 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#27272a]/60 pb-3">
+          <div>
+            <div className="flex items-center space-x-2">
+              <Layers size={16} className="text-[#e11d48]" />
+              <h3 className="text-sm font-semibold text-[#fafafa]">
+                Audit Scan Depth &amp; Credit Allocation
+              </h3>
+              <Badge variant="outline" className="text-[10px]">
+                Default: 3 Videos (10 Credits)
+              </Badge>
+            </div>
+            <p className="text-xs text-[#a1a1aa] mt-1 leading-relaxed">
+              By default, NEFRA audits the last published 3 videos. Use your credits to allow Vertex AI to scan deeper across 5, 10, or 20 published videos for enhanced retention accuracy and brand safety certification.
+            </p>
+          </div>
+          <div className="text-right shrink-0">
+            <span className="text-xs text-[#71717a]">
+              Available Channel Uploads: <strong className="text-[#fafafa] font-mono">{recentVideos.length > 0 ? recentVideos.length : (creator.youtube?.videoCount || 0)}</strong>
+            </span>
+          </div>
+        </div>
+
+        {/* 4 Tier Depth Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          {AUDIT_DEPTH_TIERS.map((tier) => {
+            const isSelected = selectedDepth.id === tier.id;
+            const hasEnoughCredits = credits === undefined || credits >= tier.creditsCost;
+
+            return (
+              <div
+                key={tier.id}
+                onClick={() => setSelectedDepth(tier)}
+                className={`p-3.5 rounded-lg border cursor-pointer transition-all flex flex-col justify-between ${
+                  isSelected 
+                    ? 'border-[#e11d48] bg-[#e11d48]/10 shadow-sm shadow-[#e11d48]/10' 
+                    : 'border-[#27272a] bg-[#18181b]/60 hover:border-[#3f3f46] hover:bg-[#18181b]'
+                }`}
+              >
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Badge variant={tier.badgeVariant} className="text-[10px] uppercase font-bold">
+                      {tier.badge}
+                    </Badge>
+                    <div className="flex items-center space-x-1 text-xs font-mono font-bold text-[#fafafa]">
+                      <Coins size={12} className="text-[#f59e0b]" />
+                      <span>{tier.creditsCost} Credits</span>
+                    </div>
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-[#fafafa]">
+                      {tier.label}
+                    </h4>
+                    <p className="text-[11px] text-[#a1a1aa] mt-1 leading-snug">
+                      {tier.desc}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-3 pt-2.5 border-t border-[#27272a]/40 flex items-center justify-between text-[11px]">
+                  <span className={isSelected ? 'text-[#e11d48] font-semibold' : 'text-[#71717a]'}>
+                    {isSelected ? '✓ Selected Plan' : 'Click to select'}
+                  </span>
+                  {!hasEnoughCredits && (
+                    <span className="text-[#ef4444] text-[10px] font-medium">Needs refill</span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </Card>
 
       {/* Multi-stage Analysis Progress Overlay */}
       {isAuditing && (
@@ -239,7 +370,7 @@ export function ChannelAuditView({
             <div className="flex items-center space-x-2">
               <Sparkles size={16} className="text-[#e11d48] animate-spin" />
               <span className="text-xs font-semibold text-[#fafafa]">
-                {auditStep === 1 && "1/5: Connecting to YouTube Video Telemetry & Stream Metadata..."}
+                {auditStep === 1 && `1/5: Connecting to YouTube Video Telemetry & Streams (${selectedDepth.shortLabel})...`}
                 {auditStep === 2 && "2/5: Transcribing spoken speech & analyzing visual pacing..."}
                 {auditStep === 3 && "3/5: Evaluating advertiser brand safety & retention curves..."}
                 {auditStep === 4 && "4/5: Extracting niche hashtags & classifying creator category..."}
@@ -257,7 +388,9 @@ export function ChannelAuditView({
             />
           </div>
           <p className="text-[11px] text-[#a1a1aa]">
-            Evaluating {recentVideos.length || 3} latest uploads ({recentVideos.map(v => `"${(v.title || '').slice(0, 25)}..."`).join(', ')}).
+            {recentVideos.length > 0
+              ? `Evaluating ${Math.min(recentVideos.length, selectedDepth.videoCount)} latest uploads (Scanning ${selectedDepth.tagline}) with Vertex AI.`
+              : 'Evaluating channel telemetry, category positioning, and audience demographics (0 video uploads).'}
           </p>
         </Card>
       )}
@@ -570,119 +703,171 @@ export function ChannelAuditView({
 
       {/* Evaluated Recent Videos */}
       <div className="space-y-3 pt-2">
-        <div className="flex items-center justify-between">
-          <h3 className="text-xs uppercase font-semibold text-[#a1a1aa] tracking-wider">
-            Recent Video Telemetry Evaluated By Gemini ({recentVideos.length || 3} Uploads)
-          </h3>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div className="flex items-center space-x-2">
+            <h3 className="text-xs uppercase font-semibold text-[#a1a1aa] tracking-wider">
+              Recent Video Telemetry Evaluated By Vertex AI
+            </h3>
+            {recentVideos.length > 0 && (
+              <Badge variant="outline" className="text-[10px] border-[#3f3f46]">
+                {Math.min(recentVideos.length, Math.max(3, currentAudit?.auditedVideosCount || currentAudit?.requestedDepth || selectedDepth.videoCount))} of {recentVideos.length} Uploads Evaluated
+              </Badge>
+            )}
+          </div>
           <span className="text-[11px] text-[#71717a]">
-            Engine: {audit.engine || "Google Gemini 2.0 Flash"}
+            Engine: {audit.engine || "Google Cloud Vertex AI"}
           </span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {(recentVideos.length ? recentVideos.slice(0, 3) : [
-            { title: "Building an Autonomous Agent in 48 Hours", views: "184K" },
-            { title: "M4 Max MacBook Review for Software Architects", views: "248K" },
-            { title: "Postgres vs Vector Search Benchmarks", views: "92K" }
-          ]).map((video, idx) => {
-            const critique = videoCritiques[idx] || {};
-            const hookScore = critique.hookScore || (idx === 0 ? 94 : idx === 1 ? 91 : 95);
-            const pacingScore = critique.pacingScore || (idx === 0 ? 92 : idx === 1 ? 89 : 93);
-            const sponsorScore = critique.sponsorReadiness || (idx === 0 ? 98 : idx === 1 ? 96 : 99);
-            const midRoll = critique.optimalMidRollPlacement || (idx === 0 ? "02:15 - 03:20" : idx === 1 ? "03:10 - 04:30" : "01:45 - 02:50");
+        {recentVideos.length === 0 ? (
+          <div className="p-8 rounded-xl bg-[#09090b] border border-[#27272a] text-center flex flex-col items-center justify-center space-y-3">
+            <div className="w-12 h-12 rounded-xl bg-[#18181b] border border-[#27272a] flex items-center justify-center text-[#71717a]">
+              <VideoOff size={22} />
+            </div>
+            <div>
+              <h4 className="text-sm font-semibold text-white">No Public Video Uploads Found on This Channel</h4>
+              <p className="text-xs text-[#a1a1aa] mt-1 max-w-md mx-auto leading-relaxed">
+                Your connected YouTube channel currently has 0 public video uploads. As soon as you publish your first video on YouTube, Vertex AI will extract your video pacing, retention hooks, and sponsorship mid-roll placements.
+              </p>
+            </div>
+            {creator.youtube?.channelId && (
+              <a
+                href={`https://studio.youtube.com/channel/${creator.youtube.channelId}/videos`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center space-x-1.5 text-xs text-[#e11d48] hover:underline pt-1"
+              >
+                <span>Open YouTube Studio</span>
+                <ExternalLink size={12} />
+              </a>
+            )}
+          </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {recentVideos.slice(0, Math.min(recentVideos.length, Math.max(3, currentAudit?.auditedVideosCount || currentAudit?.requestedDepth || selectedDepth.videoCount))).map((video, idx) => {
+                const critique = videoCritiques[idx] || {};
+                const hookScore = critique.hookScore || (idx === 0 ? 94 : idx === 1 ? 91 : idx === 2 ? 95 : 92);
+                const pacingScore = critique.pacingScore || (idx === 0 ? 92 : idx === 1 ? 89 : idx === 2 ? 93 : 90);
+                const sponsorScore = critique.sponsorReadiness || (idx === 0 ? 98 : idx === 1 ? 96 : idx === 2 ? 99 : 97);
+                const midRoll = critique.optimalMidRollPlacement || (idx === 0 ? "02:15 - 03:20" : idx === 1 ? "03:10 - 04:30" : idx === 2 ? "01:45 - 02:50" : "02:40 - 03:55");
 
-            return (
-              <Card key={idx} className="flex flex-col justify-between border-[#27272a] bg-[#121215]/80 hover:border-[#3f3f46] transition-all">
-                <div className="space-y-3">
-                  {/* Video Thumbnail Header */}
-                  {video.thumbnail ? (
-                    <div className="relative rounded-md overflow-hidden aspect-video bg-[#18181b] border border-[#27272a]">
-                      <img 
-                        src={video.thumbnail} 
-                        alt={video.title} 
-                        className="w-full h-full object-cover"
-                      />
-                      <div className="absolute inset-0 bg-black/30 hover:bg-black/10 transition-colors flex items-center justify-center group">
-                        <div className="w-8 h-8 rounded-full bg-[#e11d48]/90 text-white flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                          <Play size={14} className="ml-0.5 fill-current" />
+                return (
+                  <Card key={idx} className="flex flex-col justify-between border-[#27272a] bg-[#121215]/80 hover:border-[#3f3f46] transition-all">
+                    <div className="space-y-3">
+                      {/* Video Thumbnail Header */}
+                      {video.thumbnail ? (
+                        <div className="relative rounded-md overflow-hidden aspect-video bg-[#18181b] border border-[#27272a]">
+                          <img 
+                            src={video.thumbnail} 
+                            alt={video.title} 
+                            className="w-full h-full object-cover"
+                          />
+                          <div className="absolute inset-0 bg-black/30 hover:bg-black/10 transition-colors flex items-center justify-center group">
+                            <div className="w-8 h-8 rounded-full bg-[#e11d48]/90 text-white flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                              <Play size={14} className="ml-0.5 fill-current" />
+                            </div>
+                          </div>
+                          <Badge className="absolute bottom-2 left-2 bg-black/80 text-[10px] text-white backdrop-blur-sm border-none">
+                            Video #{idx + 1}
+                          </Badge>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-between">
+                          <Badge variant="outline" className="text-[10px] border-[#3f3f46]">
+                            Video #{idx + 1}
+                          </Badge>
+                          <span className="text-xs text-[#71717a] font-mono">{video.views || "0"} views</span>
+                        </div>
+                      )}
+
+                      {/* Title & Link */}
+                      <div>
+                        <h4 className="text-xs font-semibold text-[#fafafa] line-clamp-2 leading-snug">
+                          {video.title}
+                        </h4>
+                        {video.url && (
+                          <a
+                            href={video.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center space-x-1 text-[11px] text-[#e11d48] hover:underline mt-1"
+                          >
+                            <span>Watch on YouTube</span>
+                            <ExternalLink size={10} />
+                          </a>
+                        )}
+                      </div>
+
+                      {/* Diagnostics Metrics Chips */}
+                      <div className="grid grid-cols-3 gap-1.5 py-1 text-center">
+                        <div className="p-1.5 rounded bg-[#18181b] border border-[#27272a]">
+                          <span className="text-[9px] text-[#71717a] uppercase block">Hook</span>
+                          <span className="text-xs font-bold text-[#fafafa]">{hookScore}%</span>
+                        </div>
+                        <div className="p-1.5 rounded bg-[#18181b] border border-[#27272a]">
+                          <span className="text-[9px] text-[#71717a] uppercase block">Pacing</span>
+                          <span className="text-xs font-bold text-[#fafafa]">{pacingScore}%</span>
+                        </div>
+                        <div className="p-1.5 rounded bg-[#18181b] border border-[#27272a]">
+                          <span className="text-[9px] text-[#71717a] uppercase block">Sponsor</span>
+                          <span className="text-xs font-bold text-[#10b981]">{sponsorScore}%</span>
                         </div>
                       </div>
-                      <Badge className="absolute bottom-2 left-2 bg-black/80 text-[10px] text-white backdrop-blur-sm border-none">
-                        Video #{idx + 1}
-                      </Badge>
-                    </div>
-                  ) : (
-                    <div className="flex items-center justify-between">
-                      <Badge variant="outline" className="text-[10px] border-[#3f3f46]">
-                        Video #{idx + 1}
-                      </Badge>
-                      <span className="text-xs text-[#71717a] font-mono">{video.views || "120K"} views</span>
-                    </div>
-                  )}
 
-                  {/* Title & Link */}
-                  <div>
-                    <h4 className="text-xs font-semibold text-[#fafafa] line-clamp-2 leading-snug">
-                      {video.title}
-                    </h4>
-                    {video.url && (
-                      <a
-                        href={video.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center space-x-1 text-[11px] text-[#e11d48] hover:underline mt-1"
-                      >
-                        <span>Watch on YouTube</span>
-                        <ExternalLink size={10} />
-                      </a>
-                    )}
-                  </div>
+                      {/* Gemini Critique */}
+                      <div className="space-y-2 text-[11px] pt-1">
+                        <div className="p-2 rounded bg-[#10b981]/10 border border-[#10b981]/25 text-[#fafafa]">
+                          <span className="font-semibold text-[#10b981] block text-[10px] uppercase">Retention Hook:</span>
+                          <p className="text-[#a1a1aa] mt-0.5 leading-relaxed">
+                            {critique.praise || "Clean presentation cadence tailored for the channel audience."}
+                          </p>
+                        </div>
 
-                  {/* Diagnostics Metrics Chips */}
-                  <div className="grid grid-cols-3 gap-1.5 py-1 text-center">
-                    <div className="p-1.5 rounded bg-[#18181b] border border-[#27272a]">
-                      <span className="text-[9px] text-[#71717a] uppercase block">Hook</span>
-                      <span className="text-xs font-bold text-[#fafafa]">{hookScore}%</span>
-                    </div>
-                    <div className="p-1.5 rounded bg-[#18181b] border border-[#27272a]">
-                      <span className="text-[9px] text-[#71717a] uppercase block">Pacing</span>
-                      <span className="text-xs font-bold text-[#fafafa]">{pacingScore}%</span>
-                    </div>
-                    <div className="p-1.5 rounded bg-[#18181b] border border-[#27272a]">
-                      <span className="text-[9px] text-[#71717a] uppercase block">Sponsor</span>
-                      <span className="text-xs font-bold text-[#10b981]">{sponsorScore}%</span>
-                    </div>
-                  </div>
-
-                  {/* Gemini Critique */}
-                  <div className="space-y-2 text-[11px] pt-1">
-                    <div className="p-2 rounded bg-[#10b981]/10 border border-[#10b981]/25 text-[#fafafa]">
-                      <span className="font-semibold text-[#10b981] block text-[10px] uppercase">Retention Hook:</span>
-                      <p className="text-[#a1a1aa] mt-0.5 leading-relaxed">
-                        {critique.praise || "Fast, authoritative demonstration hooks viewers in the first 40 seconds with minimal friction."}
-                      </p>
+                        <div className="p-2 rounded bg-[#f59e0b]/10 border border-[#f59e0b]/25 text-[#fafafa]">
+                          <span className="font-semibold text-[#f59e0b] block text-[10px] uppercase">Recommendation:</span>
+                          <p className="text-[#a1a1aa] mt-0.5 leading-relaxed">
+                            {critique.suggestion || "Place sponsored callout at prime window to capture maximum viewer intent."}
+                          </p>
+                        </div>
+                      </div>
                     </div>
 
-                    <div className="p-2 rounded bg-[#f59e0b]/10 border border-[#f59e0b]/25 text-[#fafafa]">
-                      <span className="font-semibold text-[#f59e0b] block text-[10px] uppercase">Recommendation:</span>
-                      <p className="text-[#a1a1aa] mt-0.5 leading-relaxed">
-                        {critique.suggestion || "Place sponsored callout at prime window to capture maximum viewer intent."}
-                      </p>
+                    <div className="pt-3 border-t border-[#27272a] mt-4 flex items-center justify-between text-xs text-[#71717a]">
+                      <span className="inline-flex items-center space-x-1">
+                        <Clock size={11} className="text-[#71717a]" />
+                        <span>Ad Window: <strong className="text-[#fafafa]">{midRoll}</strong></span>
+                      </span>
+                      <span className="text-[#10b981] font-semibold text-[11px]">Audit Passed</span>
                     </div>
-                  </div>
-                </div>
+                  </Card>
+                );
+              })}
+            </div>
 
-                <div className="pt-3 border-t border-[#27272a] mt-4 flex items-center justify-between text-xs text-[#71717a]">
-                  <span className="inline-flex items-center space-x-1">
-                    <Clock size={11} className="text-[#71717a]" />
-                    <span>Ad Window: <strong className="text-[#fafafa]">{midRoll}</strong></span>
+            {/* Upgrade notice if more videos exist */}
+            {recentVideos.length > Math.min(recentVideos.length, Math.max(3, currentAudit?.auditedVideosCount || currentAudit?.requestedDepth || selectedDepth.videoCount)) && (
+              <div className="p-3.5 rounded-lg border border-dashed border-[#27272a] bg-[#18181b]/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-[#a1a1aa] mt-2">
+                <div className="flex items-center space-x-2">
+                  <Sparkles size={15} className="text-[#f59e0b] shrink-0" />
+                  <span>
+                    You have <strong>{recentVideos.length - Math.min(recentVideos.length, Math.max(3, currentAudit?.auditedVideosCount || currentAudit?.requestedDepth || selectedDepth.videoCount))} more uploads</strong> on YouTube. Choose <strong>Deep (5)</strong>, <strong>Pro (10)</strong>, or <strong>Full Catalogue (20)</strong> above to audit them using credits.
                   </span>
-                  <span className="text-[#10b981] font-semibold text-[11px]">Audit Passed</span>
                 </div>
-              </Card>
-            );
-          })}
-        </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  className="text-xs shrink-0 border-[#3f3f46] text-[#fafafa]"
+                >
+                  Change Scan Depth
+                </Button>
+              </div>
+            )}
+          </>
+        )}
       </div>
 
       {/* Google Cloud Vertex AI Configuration Dialog */}

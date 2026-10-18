@@ -4,7 +4,7 @@ import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
 import { Input, Textarea, Select } from '../ui/Input';
 import { buildJobCardWithGemini } from '../../packages/ai/geminiClient';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, Coins } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 const SAMPLE_PROMPTS = [
@@ -16,7 +16,10 @@ const SAMPLE_PROMPTS = [
 
 export function AICampaignBuilder({
   onPublishCampaign,
-  onCancel
+  onCancel,
+  brandCredits = 250,
+  onDeductBrandCredits,
+  onOpenTopup
 }) {
   const [prompt, setPrompt] = useState(SAMPLE_PROMPTS[0]);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -34,8 +37,22 @@ export function AICampaignBuilder({
 
   const handleGenerate = async () => {
     if (!prompt.trim()) return;
+
+    if (typeof brandCredits === 'number' && brandCredits < 15) {
+      if (onOpenTopup) {
+        onOpenTopup();
+      } else {
+        alert('Insufficient Brand Credits. You need 15 Brand Credits to generate an AI campaign brief. Please top up your business wallet.');
+      }
+      return;
+    }
+
     setIsGenerating(true);
     try {
+      if (onDeductBrandCredits) {
+        onDeductBrandCredits(15, `AI Campaign Builder - "${prompt.slice(0, 30)}..."`);
+      }
+
       const card = await buildJobCardWithGemini(prompt);
       setGeneratedCard(card);
 

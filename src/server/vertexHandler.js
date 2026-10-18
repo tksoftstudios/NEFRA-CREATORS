@@ -191,8 +191,12 @@ export async function handleVertexGenerateContent(body = {}) {
   const projectId = sa?.project_id || process.env.VITE_GCP_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID || 'nefra-creators-x';
   const region = process.env.VITE_GCP_REGION || 'us-central1';
   let model = body.model || 'gemini-2.5-flash';
-  // Map deprecated / unlisted model names to available Vertex AI models
-  if (model.includes('flash')) {
+  // Preserve image models (Gemini Flash Image / Nano Banana, Imagen)
+  if (model.includes('banana') || model === 'gemini-2.5-flash-image' || model.includes('image')) {
+    model = 'gemini-2.5-flash-image';
+  } else if (model.includes('imagen') || model.includes('imagegeneration')) {
+    // Keep exact imagen model requested
+  } else if (model.includes('flash')) {
     model = 'gemini-2.5-flash';
   } else if (model.includes('pro')) {
     model = 'gemini-2.5-pro';
@@ -228,9 +232,11 @@ export async function handleVertexGenerateContent(body = {}) {
     'Authorization': `Bearer ${accessToken}`
   };
 
-  const endpoint = `https://${region}-aiplatform.googleapis.com/v1/projects/${projectId}/locations/${region}/publishers/google/models/${model}:generateContent`;
+  const isPredictModel = model.includes('imagen') || model.includes('imagegeneration');
+  const action = isPredictModel ? ':predict' : ':generateContent';
+  const endpoint = `https://${region}-aiplatform.googleapis.com/v1/projects/${projectId}/locations/${region}/publishers/google/models/${model}${action}`;
 
-  console.log(`📡 [Vertex AI Proxy] Dispatching to ${region}-aiplatform.googleapis.com (Model: ${model}, Project: ${projectId})...`);
+  console.log(`📡 [Vertex AI Proxy] Dispatching to ${region}-aiplatform.googleapis.com (Model: ${model}, Action: ${action}, Project: ${projectId})...`);
 
   try {
     const res = await fetch(endpoint, {

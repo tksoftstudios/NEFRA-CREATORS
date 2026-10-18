@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Dialog } from '../ui/Dialog';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
-import { CREDIT_PACKAGES, topupCreditsWithStripe } from '../../services/stripeService';
+import { CREATOR_CREDIT_PACKAGES, BRAND_CREDIT_PACKAGES, topupCreditsWithStripe } from '../../services/stripeService';
 import { 
   Coins, 
   CreditCard, 
@@ -12,25 +12,44 @@ import {
   Lock, 
   ExternalLink,
   Zap,
-  ArrowRight
+  ArrowRight,
+  Building2
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 export function StripeTopupModal({
   isOpen,
   onClose,
-  onSuccess
+  onSuccess,
+  portalType = 'creator',
+  userProfile = null
 }) {
-  const [selectedPackage, setSelectedPackage] = useState(CREDIT_PACKAGES[1]); // Pro by default
+  const isBrand = portalType === 'brand';
+  const availablePackages = isBrand ? BRAND_CREDIT_PACKAGES : CREATOR_CREDIT_PACKAGES;
+
+  const [selectedPackage, setSelectedPackage] = useState(availablePackages[1]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [errorMsg, setErrorMsg] = useState(null);
   const [successReceipt, setSuccessReceipt] = useState(null);
+
+  // Sync selected package when portalType changes
+  React.useEffect(() => {
+    setSelectedPackage(availablePackages[1] || availablePackages[0]);
+  }, [portalType]);
 
   // Form State
   const [cardNumber, setCardNumber] = useState('4242 •••• •••• 4242');
   const [expDate, setExpDate] = useState('12/28');
   const [cvc, setCvc] = useState('123');
-  const [cardholderName, setCardholderName] = useState('Kaveen Creator');
+  const [cardholderName, setCardholderName] = useState(
+    isBrand ? (userProfile?.companyName || 'Nefra Enterprise Brand') : 'Kaveen Creator'
+  );
+
+  React.useEffect(() => {
+    if (isBrand && userProfile?.companyName) {
+      setCardholderName(userProfile.companyName);
+    }
+  }, [isBrand, userProfile]);
 
   const handlePay = async () => {
     setIsProcessing(true);
@@ -76,8 +95,12 @@ export function StripeTopupModal({
     <Dialog
       isOpen={isOpen}
       onClose={handleResetAndClose}
-      title="Top-Up Creator Credits with Stripe"
-      description="Purchase credits instantly using the official Stripe Sandbox gateway."
+      title={isBrand ? "Top-Up Brand Credits with Stripe" : "Top-Up Creator Credits with Stripe"}
+      description={
+        isBrand
+          ? "Purchase Brand Credits for AI poster design, campaign strategy briefs, and creator matching."
+          : "Purchase Nefra credits instantly using the official Stripe Sandbox gateway."
+      }
       maxWidth="max-w-xl"
     >
       {successReceipt ? (
@@ -91,7 +114,7 @@ export function StripeTopupModal({
               Payment Succeeded!
             </h3>
             <p className="text-xs text-[#a1a1aa]">
-              Added <strong className="text-[#fafafa]">+{successReceipt.creditsAdded} Credits</strong> to your creator wallet.
+              Added <strong className="text-[#fafafa]">+{successReceipt.creditsAdded} {isBrand ? 'Brand Credits' : 'Credits'}</strong> to your {isBrand ? 'business wallet' : 'creator wallet'}.
             </p>
           </div>
 
@@ -116,9 +139,9 @@ export function StripeTopupModal({
 
           <Button
             onClick={handleResetAndClose}
-            className="w-full bg-[#e11d48] hover:bg-[#be123c] text-white"
+            className={`w-full text-white cursor-pointer ${isBrand ? 'bg-[#3b82f6] hover:bg-[#2563eb]' : 'bg-[#e11d48] hover:bg-[#be123c]'}`}
           >
-            Done &amp; Return to Wallet
+            Done &amp; Return to {isBrand ? 'Business Workspace' : 'Wallet'}
           </Button>
         </div>
       ) : (
@@ -130,7 +153,7 @@ export function StripeTopupModal({
               <span className="font-semibold text-[#fafafa]">Stripe Sandbox Testmode</span>
             </div>
             <Badge variant="outline" className="text-[10px] text-[#a1a1aa] border-[#3f3f46]">
-              acct_1URWsCPaczSuhiYB
+              {isBrand ? 'acct_biz_sandbox_nefra' : 'acct_1URWsCPaczSuhiYB'}
             </Badge>
           </div>
 
@@ -142,11 +165,19 @@ export function StripeTopupModal({
 
           {/* Package Selection */}
           <div className="space-y-2">
-            <label className="text-xs font-semibold text-[#fafafa] block">
-              1. Select Credit Package
-            </label>
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-semibold text-[#fafafa] block">
+                1. Select {isBrand ? 'Brand Credit Tier' : 'Credit Package'}
+              </label>
+              {isBrand && (
+                <span className="text-[10px] text-[#3b82f6] font-medium flex items-center space-x-1">
+                  <Building2 size={11} />
+                  <span>Business Invoicing Supported</span>
+                </span>
+              )}
+            </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-              {CREDIT_PACKAGES.map((pkg) => {
+              {availablePackages.map((pkg) => {
                 const isSelected = selectedPackage.id === pkg.id;
                 const totalCredits = pkg.credits + (pkg.bonusCredits || 0);
 
@@ -156,31 +187,36 @@ export function StripeTopupModal({
                     onClick={() => setSelectedPackage(pkg)}
                     className={`cursor-pointer p-3 rounded-lg border text-left transition-all relative flex flex-col justify-between ${
                       isSelected
-                        ? 'border-[#e11d48] bg-[#e11d48]/10'
+                        ? (isBrand ? 'border-[#3b82f6] bg-[#3b82f6]/10' : 'border-[#e11d48] bg-[#e11d48]/10')
                         : 'border-[#27272a] bg-[#18181b] hover:border-[#3f3f46]'
                     }`}
                   >
                     {pkg.popular && (
-                      <span className="absolute -top-2 right-2 text-[9px] font-bold px-1.5 py-0.2 rounded bg-[#e11d48] text-white">
+                      <span className={`absolute -top-2 right-2 text-[9px] font-bold px-1.5 py-0.2 rounded text-white ${
+                        isBrand ? 'bg-[#3b82f6]' : 'bg-[#e11d48]'
+                      }`}>
                         POPULAR
                       </span>
                     )}
 
                     <div>
-                      <span className="text-[11px] font-medium text-[#a1a1aa] block">
+                      <span className="text-[11px] font-medium text-[#a1a1aa] block leading-tight">
                         {pkg.name}
                       </span>
                       <div className="flex items-baseline space-x-1 mt-1">
                         <span className="text-xl font-extrabold text-[#fafafa] tabular-nums">
                           {totalCredits}
                         </span>
-                        <span className="text-[11px] text-[#a1a1aa]">Credits</span>
+                        <span className="text-[11px] text-[#a1a1aa]">{isBrand ? 'Brand Credits' : 'Credits'}</span>
                       </div>
                       {pkg.bonusCredits > 0 && (
                         <span className="text-[10px] text-[#10b981] font-semibold block mt-0.5">
                           +{pkg.bonusCredits} Bonus Free
                         </span>
                       )}
+                      <p className="text-[10px] text-[#71717a] mt-1 line-clamp-2 leading-relaxed">
+                        {pkg.description}
+                      </p>
                     </div>
 
                     <div className="pt-2 mt-2 border-t border-[#27272a] flex items-center justify-between">
@@ -196,6 +232,7 @@ export function StripeTopupModal({
               })}
             </div>
           </div>
+
 
           {/* Mock Stripe Elements Card Form */}
           <div className="space-y-3 pt-2 border-t border-[#27272a]">

@@ -4,91 +4,37 @@ import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
 import { Dialog } from '../ui/Dialog';
 import { Input, Textarea, Select } from '../ui/Input';
-import { formatCents } from '../../lib/utils';
+import { formatCurrency } from '../../services/currencyService';
+import { calculateDynamicRateCards } from '../../packages/pricing/rateCardEngine';
+import { AIScoreJustificationModal } from './AIScoreJustificationModal';
 import { calculateContractFees } from '../../packages/escrow/feeCalculator';
-import { Plus, CheckCircle2, Trash2, Sparkles, Coins, ArrowRight } from 'lucide-react';
+import { Plus, CheckCircle2, Trash2, Sparkles, Coins, ArrowRight, HelpCircle } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 export function RateCardsManager({
   rateCards = [],
   setRateCards,
   feePercent = 10,
-  creator = {}
+  creator = {},
+  preferredCurrency = 'USD'
 }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCard, setEditingCard] = useState(null);
   const [aiNotice, setAiNotice] = useState(null);
+  const [isJustificationOpen, setIsJustificationOpen] = useState(false);
 
   const pricing = creator?.audit?.pricingIntelligence;
 
   const handleApplyAiPackages = () => {
-    const aiPackages = [
-      {
-        id: `pkg_ai_int_${Date.now()}`,
-        creatorId: creator.id || 'creator_01',
-        title: '60s Dedicated Brand Integration',
-        type: 'integration',
-        priceCents: 240000, // $2,400.00
-        turnaroundDays: 7,
-        revisions: 2,
-        modality: 'online',
-        badge: 'AI Recommended',
-        description: `High-retention 60-second mid-roll sponsor integration placed during peak attention window (02:15 - 03:45). Includes tracking link and social card.`,
-        deliverables: [
-          '60s Native Sponsorship Segment within main upload',
-          'Persistent Pinned Comment with affiliate / discount link',
-          'First link in YouTube description',
-          '2 rounds of timeline revisions before release'
-        ],
-        status: 'active'
-      },
-      {
-        id: `pkg_ai_shorts_${Date.now() + 1}`,
-        creatorId: creator.id || 'creator_01',
-        title: 'High-Impact YouTube Short / Reel',
-        type: 'shorts',
-        priceCents: 95000, // $950.00
-        turnaroundDays: 4,
-        revisions: 1,
-        modality: 'online',
-        badge: 'Viral Hook',
-        description: `Fast-paced 30-45s vertical video highlighting your brand value proposition with instant retention hooks and sound design.`,
-        deliverables: [
-          '30–45s Vertical 9:16 Short/Reel',
-          'Dynamic text subtitles & motion graphics',
-          'Link sticker in bio / pinned comment'
-        ],
-        status: 'active'
-      },
-      {
-        id: `pkg_ai_ded_${Date.now() + 2}`,
-        creatorId: creator.id || 'creator_01',
-        title: 'Dedicated 4K Deep-Dive Showcase',
-        type: 'dedicated',
-        priceCents: 580000, // $5,800.00
-        turnaroundDays: 14,
-        revisions: 3,
-        modality: 'online',
-        badge: 'Enterprise Flagship',
-        description: `Comprehensive 10-15 minute deep-dive review and walkthrough showcasing enterprise features, user workflows, and practical applications.`,
-        deliverables: [
-          '10-15 minute dedicated 4K production upload',
-          'Custom branded thumbnail & SEO title optimization',
-          'Full usage rights for advertiser digital ad cuts (3 months)',
-          'Community tab shoutout & Discord announcement'
-        ],
-        status: 'active'
-      }
-    ];
-
-    setRateCards(aiPackages);
+    const dynamicPackages = calculateDynamicRateCards(creator);
+    setRateCards(dynamicPackages);
     confetti({
       particleCount: 75,
       spread: 70,
       origin: { y: 0.5 }
     });
-    setAiNotice('AI Recommended rate card packages applied based on your Gemini Multimodal Channel Audit!');
-    setTimeout(() => setAiNotice(null), 5000);
+    setAiNotice(`Dynamic rate cards calibrated to your genuine reach (${creator.subscribersFormatted || '0'} subscribers) and ${creator.aiScore || 92}/100 AI Score!`);
+    setTimeout(() => setAiNotice(null), 6000);
   };
 
   // Form State
@@ -196,14 +142,25 @@ export function RateCardsManager({
               </div>
             </div>
 
-            <Button
-              onClick={handleApplyAiPackages}
-              size="sm"
-              className="bg-[#e11d48] hover:bg-[#be123c] text-white space-x-1.5 text-xs shrink-0 shadow-sm"
-            >
-              <Sparkles size={13} />
-              <span>Auto-Apply AI Packages</span>
-            </Button>
+            <div className="flex items-center space-x-2 flex-wrap">
+              <button
+                type="button"
+                onClick={() => setIsJustificationOpen(true)}
+                className="text-xs text-[#a1a1aa] hover:text-white flex items-center space-x-1 px-2.5 py-1.5 rounded-lg border border-[#27272a] hover:bg-[#18181b] transition-colors cursor-pointer"
+              >
+                <HelpCircle size={13} className="text-[#3b82f6]" />
+                <span>Explain AI Score & Pricing</span>
+              </button>
+
+              <Button
+                onClick={handleApplyAiPackages}
+                size="sm"
+                className="bg-[#e11d48] hover:bg-[#be123c] text-white space-x-1.5 text-xs shrink-0 shadow-sm cursor-pointer"
+              >
+                <Sparkles size={13} />
+                <span>Auto-Apply AI Packages</span>
+              </Button>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
@@ -239,6 +196,11 @@ export function RateCardsManager({
                 </div>
 
                 <h3 className="text-base font-semibold text-[#fafafa] mt-3">{pkg.title}</h3>
+                {pkg.reachBasis && (
+                  <p className="text-[11px] text-[#3b82f6] font-medium mt-0.5">
+                    {pkg.reachBasis}
+                  </p>
+                )}
                 <p className="text-xs text-[#a1a1aa] mt-1 line-clamp-2">{pkg.description}</p>
 
                 {/* Checklist */}
@@ -257,15 +219,15 @@ export function RateCardsManager({
               <div className="mt-5 pt-3 border-t border-[#27272a] space-y-2">
                 <div className="flex justify-between items-baseline text-xs text-[#71717a]">
                   <span>Brand client price:</span>
-                  <span className="font-semibold text-[#fafafa] tabular-nums">{formatCents(pkg.priceCents)}</span>
+                  <span className="font-semibold text-[#fafafa] tabular-nums">{formatCurrency(pkg.priceCents, preferredCurrency)}</span>
                 </div>
                 <div className="flex justify-between items-baseline text-xs text-[#71717a]">
                   <span>Platform escrow fee ({feePercent}%):</span>
-                  <span className="text-[#a1a1aa] tabular-nums">-{formatCents(fees.platformFeeCents)}</span>
+                  <span className="text-[#a1a1aa] tabular-nums">-{formatCurrency(fees.platformFeeCents, preferredCurrency)}</span>
                 </div>
                 <div className="flex justify-between items-baseline text-xs text-[#e11d48] font-bold pt-1 border-t border-[#18181b]">
                   <span>Your net payout:</span>
-                  <span className="text-sm tabular-nums">{formatCents(fees.netCreatorCents)}</span>
+                  <span className="text-sm tabular-nums">{formatCurrency(fees.netCreatorCents, preferredCurrency)}</span>
                 </div>
 
                 <div className="pt-2 flex justify-end">
@@ -353,15 +315,15 @@ export function RateCardsManager({
           <div className="p-3 bg-[#18181b] rounded-lg border border-[#27272a] space-y-1 text-xs">
             <div className="flex justify-between text-[#a1a1aa]">
               <span>Brand Price:</span>
-              <span className="font-semibold text-[#fafafa] tabular-nums">{formatCents(currentPriceCents)}</span>
+              <span className="font-semibold text-[#fafafa] tabular-nums">{formatCurrency(currentPriceCents, preferredCurrency)}</span>
             </div>
             <div className="flex justify-between text-[#71717a]">
               <span>Platform Take-Rate ({feePercent}%):</span>
-              <span className="tabular-nums">-{formatCents(feeCalc.platformFeeCents)}</span>
+              <span className="tabular-nums">-{formatCurrency(feeCalc.platformFeeCents, preferredCurrency)}</span>
             </div>
             <div className="flex justify-between font-bold text-[#fafafa] pt-1 border-t border-[#27272a]">
               <span>Net Creator Payout:</span>
-              <span className="text-[#e11d48] tabular-nums">{formatCents(feeCalc.netCreatorCents)}</span>
+              <span className="text-[#e11d48] tabular-nums">{formatCurrency(feeCalc.netCreatorCents, preferredCurrency)}</span>
             </div>
           </div>
 
@@ -390,6 +352,13 @@ export function RateCardsManager({
           </div>
         </form>
       </Dialog>
+
+      <AIScoreJustificationModal
+        isOpen={isJustificationOpen}
+        onClose={() => setIsJustificationOpen(false)}
+        creator={creator}
+        audit={creator.audit}
+      />
     </div>
   );
 }

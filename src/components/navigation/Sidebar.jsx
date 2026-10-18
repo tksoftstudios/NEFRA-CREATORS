@@ -13,7 +13,9 @@ import {
   Sliders, 
   FileText,
   Search,
-  Share2
+  Share2,
+  MessageCircle,
+  Wand2
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
@@ -22,12 +24,14 @@ export function Sidebar({
   activeRoute,
   setActiveRoute,
   unreadDisputesCount = 0,
-  pendingReviewCount = 0
+  pendingReviewCount = 0,
+  unreadMessagesCount = 0
 }) {
   const routesByPortal = {
     creator: [
       { id: 'directory', label: 'Public directory', icon: Users },
       { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+      { id: 'messages', label: 'Gig chat & inbox', icon: MessageCircle, badge: unreadMessagesCount },
       { id: 'connectors', label: 'Connectors', icon: Share2 },
       { id: 'rate-cards', label: 'Rate cards', icon: Tag },
       { id: 'opportunities', label: 'Campaign board', icon: Briefcase },
@@ -37,11 +41,14 @@ export function Sidebar({
     ],
     brand: [
       { id: 'dashboard', label: 'Overview', icon: LayoutDashboard },
+      { id: 'content-creator', label: 'AI Content Creator', icon: Wand2, badge: 'NEW' },
       { id: 'campaigns', label: 'My campaigns', icon: Briefcase },
+      { id: 'messages', label: 'Creator chat & inbox', icon: MessageCircle, badge: unreadMessagesCount },
       { id: 'new-campaign', label: 'New campaign (AI)', icon: PlusCircle },
       { id: 'creators', label: 'Creator directory', icon: Search },
       { id: 'contracts', label: 'Escrow contracts', icon: ShieldCheck },
-      { id: 'advisor', label: 'NefraSense advisor', icon: MessageSquare }
+      { id: 'advisor', label: 'NefraSense advisor', icon: MessageSquare },
+      { id: 'credits', label: 'Brand wallet & credits', icon: Coins }
     ],
     admin: [
       { id: 'overview', label: 'Platform overview', icon: LayoutDashboard },

@@ -8,7 +8,7 @@
     --card-foreground: #fafafa;
     --popover: #09090b;
     --popover-foreground: #fafafa;
-    --primary: #e11d48; /* Red from build guide */
+    --primary: #e11d48;
     --primary-foreground: #ffffff;
     --secondary: #18181b;
     --secondary-foreground: #f4f4f5;
@@ -23,6 +23,30 @@
     --ring: #e11d48;
     --radius: 0.5rem;
   }
+
+  /* Light Mode Token Palette */
+  [data-theme="light"],
+  .light {
+    --background: #f8fafc;
+    --foreground: #0f172a;
+    --card: #ffffff;
+    --card-foreground: #0f172a;
+    --popover: #ffffff;
+    --popover-foreground: #0f172a;
+    --primary: #e11d48;
+    --primary-foreground: #ffffff;
+    --secondary: #f1f5f9;
+    --secondary-foreground: #0f172a;
+    --muted: #f1f5f9;
+    --muted-foreground: #64748b;
+    --accent: #e2e8f0;
+    --accent-foreground: #0f172a;
+    --destructive: #e11d48;
+    --destructive-foreground: #ffffff;
+    --border: #e2e8f0;
+    --input: #e2e8f0;
+    --ring: #e11d48;
+  }
 }
 
 body {
@@ -34,25 +58,99 @@ body {
   margin: 0;
   padding: 0;
   min-height: 100vh;
+  transition: background-color 0.25s ease, color 0.25s ease;
 }
 
-/* Custom minimal scrollbar */
+/* Light Theme Component Overrides for High Contrast & Clean Aesthetics */
+.light body,
+.light .min-h-screen {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+}
+
+.light .bg-\[\#000000\] {
+  background-color: #ffffff !important;
+}
+
+.light .bg-\[\#050505\] {
+  background-color: #f8fafc !important;
+}
+
+.light .bg-\[\#09090b\] {
+  background-color: #ffffff !important;
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.05);
+}
+
+.light .bg-\[\#09090b\]\/80 {
+  background-color: rgba(255, 255, 255, 0.9) !important;
+}
+
+.light .bg-\[\#121214\],
+.light .bg-\[\#121215\]\/80,
+.light .bg-\[\#18181b\] {
+  background-color: #f1f5f9 !important;
+}
+
+.light .bg-\[\#18181b\]\/50,
+.light .bg-\[\#18181b\]\/80 {
+  background-color: rgba(241, 245, 249, 0.8) !important;
+}
+
+.light .border-\[\#27272a\],
+.light .border-\[\#3f3f46\],
+.light .border-\[\#27272a\]\/60,
+.light .border-\[\#27272a\]\/80 {
+  border-color: #e2e8f0 !important;
+}
+
+.light .text-\[\#fafafa\],
+.light h1, .light h2, .light h3, .light h4, .light h5 {
+  color: #0f172a !important;
+}
+
+.light .text-\[\#a1a1aa\] {
+  color: #475569 !important;
+}
+
+.light .text-\[\#71717a\] {
+  color: #64748b !important;
+}
+
+.light .text-\[\#d4d4d8\] {
+  color: #334155 !important;
+}
+
+/* Input Fields in Light Mode */
+.light input,
+.light textarea,
+.light select {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+
+.light input:focus,
+.light textarea:focus,
+.light select:focus {
+  border-color: #e11d48 !important;
+}
+
+/* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #09090b;
+  background: var(--card);
 }
 ::-webkit-scrollbar-thumb {
-  background: #27272a;
+  background: var(--border);
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #3f3f46;
+  background: var(--muted-foreground);
 }
 
-/* Tabular figures for money and metrics */
 .tabular-nums {
   font-variant-numeric: tabular-nums;
 }
