@@ -78,16 +78,30 @@ export function Sidebar({
               className={cn(
                 "w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer",
                 isActive
-                  ? "bg-[#18181b] text-[#fafafa] border-l-2 border-[#e11d48]"
+                  ? activePortal === 'brand'
+                    ? "bg-[#18181b] text-[#fafafa] border-l-2 border-[#1db954]"
+                    : "bg-[#18181b] text-[#fafafa] border-l-2 border-[#e11d48]"
                   : "text-[#a1a1aa] hover:text-[#fafafa] hover:bg-[#18181b]/50"
               )}
             >
               <div className="flex items-center space-x-2.5">
-                <Icon size={16} className={isActive ? "text-[#e11d48]" : "text-[#71717a]"} />
+                {route.id === 'advisor' ? (
+                  <img src="/nefrasense.png" alt="NefraSense" className="w-4 h-4 object-contain shrink-0" />
+                ) : (
+                  <Icon 
+                    size={16} 
+                    className={isActive 
+                      ? (activePortal === 'brand' ? "text-[#1ed760]" : "text-[#e11d48]") 
+                      : "text-[#71717a]"
+                    } 
+                  />
+                )}
                 <span>{route.label}</span>
               </div>
               {Boolean(route.badge) && (
-                <span className="bg-[#e11d48] text-white text-[10px] px-1.5 py-0.2 rounded-full font-semibold">
+                <span className={`${
+                  activePortal === 'brand' ? 'bg-[#1db954] text-black font-bold' : 'bg-[#e11d48] text-white'
+                } text-[10px] px-1.5 py-0.2 rounded-full font-semibold`}>
                   {route.badge}
                 </span>
               )}

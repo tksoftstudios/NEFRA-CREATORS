@@ -120,7 +120,10 @@ export function deduplicateCreators(list = []) {
                          (!existing.verified && c.verified) || 
                          ((c.aiScore || 0) > (existing.aiScore || 0)) ||
                          (c.audit && !existing.audit);
-        unique[existingIdx] = isBetter ? { ...existing, ...c } : { ...c, ...existing };
+        const merged = isBetter ? { ...existing, ...c } : { ...c, ...existing };
+        const isRealUid = (val) => val && typeof val === 'string' && val.length > 15 && !val.startsWith('creator_');
+        const preferredId = isRealUid(c.id) ? c.id : (isRealUid(existing.id) ? existing.id : (c.id || existing.id));
+        unique[existingIdx] = { ...merged, id: preferredId };
       }
     }
   }

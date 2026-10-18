@@ -32,6 +32,7 @@ export function GigChatInbox({
   onSendMessage,
   onSendCustomOffer,
   onAcceptCustomOffer,
+  onOpenChat,
   onNavigate
 }) {
   const [selectedConvId, setSelectedConvId] = useState(() => {
@@ -42,6 +43,8 @@ export function GigChatInbox({
   const [searchFilter, setSearchFilter] = useState('');
   const [isOfferModalOpen, setIsOfferModalOpen] = useState(false);
   const [acceptingOfferId, setAcceptingOfferId] = useState(null);
+  const [isNewChatModalOpen, setIsNewChatModalOpen] = useState(false);
+  const [newChatSearch, setNewChatSearch] = useState('');
 
   // New Custom Offer Form State
   const [offerTitle, setOfferTitle] = useState('Dedicated 4K Technical Review + 2x Shorts');
@@ -81,7 +84,9 @@ export function GigChatInbox({
   }, [activeConversationId]);
 
   // Current selected thread
-  const activeConv = conversations.find(c => c.id === selectedConvId) || conversations[0];
+  const activeConv = conversations.find(c => c.id === selectedConvId) || 
+                     (activeConversationId ? conversations.find(c => c.id === activeConversationId) : null) || 
+                     conversations[0];
 
   // Partner info based on portal role
   const isBrand = activePortal === 'brand';
@@ -209,18 +214,30 @@ export function GigChatInbox({
         
         {/* Left Column: Conversations List */}
         <div className="w-full md:w-80 lg:w-96 flex flex-col h-full min-h-0 overflow-hidden bg-[#09090b] shrink-0">
-          {/* Search Bar */}
-          <div className="p-3 border-b border-[#27272a] shrink-0">
-            <div className="relative">
+          {/* Search Bar & New Chat Action */}
+          <div className="p-3 border-b border-[#27272a] shrink-0 flex items-center gap-2">
+            <div className="relative flex-1">
               <Search size={13} className="absolute left-3 top-2.5 text-[#71717a]" />
               <input
                 type="text"
                 value={searchFilter}
                 onChange={(e) => setSearchFilter(e.target.value)}
-                placeholder="Search inbox or creators..."
+                placeholder="Search inbox..."
                 className="w-full h-8 pl-8 pr-3 rounded-lg bg-[#000000] border border-[#27272a] text-xs text-[#fafafa] placeholder:text-[#52525b] focus:outline-none focus:border-[#3b82f6]"
               />
             </div>
+            {isBrand && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setIsNewChatModalOpen(true)}
+                className="h-8 px-2.5 text-xs border-[#1db954]/40 text-[#1ed760] hover:bg-[#1db954]/10 space-x-1 shrink-0 cursor-pointer"
+                title="Start a new chat with any creator"
+              >
+                <PlusCircle size={13} />
+                <span className="hidden sm:inline">New</span>
+              </Button>
+            )}
           </div>
 
           {/* Threads List */}
@@ -257,8 +274,15 @@ export function GigChatInbox({
 
                     <div className="text-[11px] text-[#71717a] truncate">{handle}</div>
 
-                    <p className="text-[11px] text-[#a1a1aa] truncate mt-1">
-                      {lastMsg?.type === 'custom_offer' ? '📦 Custom Gig Offer Attached' : lastMsg?.text || 'No messages yet'}
+                    <p className="text-[11px] text-[#a1a1aa] truncate mt-1 flex items-center">
+                      {lastMsg?.type === 'custom_offer' ? (
+                        <>
+                          <Package size={12} className="inline mr-1 text-[#10b981] shrink-0" />
+                          <span>Custom Gig Offer Attached</span>
+                        </>
+                      ) : (
+                        lastMsg?.text || 'No messages yet'
+                      )}
                     </p>
 
                     {hasOffer && (
@@ -416,7 +440,7 @@ export function GigChatInbox({
                             <span>2 Revisions Included</span>
                           </div>
 
-                          {/* Action Button for Buyer / Brand */}
+                          {/* Action Button for Buyer / Brand / Creator */}
                           {msg.offer.status === 'pending' ? (
                             isBrand ? (
                               <Button
@@ -435,9 +459,27 @@ export function GigChatInbox({
                                 )}
                               </Button>
                             ) : (
-                              <div className="text-center p-2 rounded-lg bg-[#18181b] text-[11px] text-[#71717a]">
-                                Waiting for brand to accept offer & deposit escrow.
-                              </div>
+                              msg.offer.senderRole === 'brand' ? (
+                                <Button
+                                  size="sm"
+                                  onClick={() => handleAcceptOffer(msg.offer)}
+                                  disabled={acceptingOfferId === msg.offer.id}
+                                  className="w-full bg-[#10b981] hover:bg-[#059669] text-white space-x-1.5 cursor-pointer font-bold"
+                                >
+                                  {acceptingOfferId === msg.offer.id ? (
+                                    <span>Accepting Gig & Locking Escrow...</span>
+                                  ) : (
+                                    <>
+                                      <CheckCircle2 size={14} />
+                                      <span>Accept Gig Offer ({formatCents(msg.offer.priceCents)})</span>
+                                    </>
+                                  )}
+                                </Button>
+                              ) : (
+                                <div className="text-center p-2 rounded-lg bg-[#18181b] text-[11px] text-[#71717a]">
+                                  Waiting for brand to accept offer & deposit escrow.
+                                </div>
+                              )
                             )
                           ) : (
                             <div className="p-2.5 rounded-lg bg-[#10b981]/15 border border-[#10b981]/30 flex items-center justify-between">
@@ -476,8 +518,8 @@ export function GigChatInbox({
                 ))}
               </div>
 
-              {/* Message Composer Footer */}
-              <form onSubmit={handleSendText} className="p-3 bg-[#09090b] border-t border-[#27272a] flex items-center space-x-2 shrink-0">
+              {/* Message Composer Footer - With clearance for floating action buttons */}
+              <form onSubmit={handleSendText} className="p-3 bg-[#09090b] border-t border-[#27272a] flex items-center space-x-2 shrink-0 pr-4 sm:pr-36">
                 <Button
                   type="button"
                   variant="outline"
@@ -590,6 +632,82 @@ export function GigChatInbox({
               </Button>
             </div>
           </form>
+        </Dialog>
+      )}
+
+      {/* Start New Conversation with Creator Modal */}
+      {isNewChatModalOpen && (
+        <Dialog
+          isOpen={isNewChatModalOpen}
+          onClose={() => setIsNewChatModalOpen(false)}
+          title="Start Conversation with Creator"
+          description="Select any vetted creator to start a direct message thread, negotiate custom gig deliverables, and lock escrow."
+          maxWidth="max-w-md"
+        >
+          <div className="space-y-4">
+            <div className="relative">
+              <Search size={14} className="absolute left-3 top-2.5 text-[#71717a]" />
+              <input
+                type="text"
+                value={newChatSearch}
+                onChange={(e) => setNewChatSearch(e.target.value)}
+                placeholder="Search creator by name or category..."
+                className="w-full h-9 pl-9 pr-3 rounded-lg bg-[#000000] border border-[#27272a] text-xs text-[#fafafa] placeholder:text-[#52525b] focus:outline-none focus:border-[#1db954]"
+                autoFocus
+              />
+            </div>
+
+            <div className="max-h-72 overflow-y-auto divide-y divide-[#27272a] pr-1">
+              {creators
+                .filter(c => {
+                  if (!newChatSearch.trim()) return true;
+                  const q = newChatSearch.toLowerCase();
+                  return (
+                    c.name?.toLowerCase().includes(q) ||
+                    c.handle?.toLowerCase().includes(q) ||
+                    c.category?.toLowerCase().includes(q)
+                  );
+                })
+                .map(c => (
+                  <div
+                    key={c.id}
+                    onClick={() => {
+                      setIsNewChatModalOpen(false);
+                      if (onOpenChat) onOpenChat(c);
+                    }}
+                    className="py-3 px-2 flex items-center justify-between hover:bg-[#18181b] rounded-lg cursor-pointer transition-colors"
+                  >
+                    <div className="flex items-center space-x-3 min-w-0">
+                      <img
+                        src={c.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80"}
+                        alt={c.name}
+                        className="w-9 h-9 rounded-full object-cover border border-[#27272a] shrink-0"
+                      />
+                      <div className="min-w-0">
+                        <p className="text-xs font-semibold text-[#fafafa] truncate">{c.name}</p>
+                        <p className="text-[11px] text-[#71717a] truncate">{c.handle} • {c.category || 'Tech & AI'}</p>
+                      </div>
+                    </div>
+
+                    <Button size="sm" variant="ghost" className="text-xs text-[#1ed760] hover:text-white hover:bg-[#1db954]/20 shrink-0">
+                      Start Chat <ChevronRight size={12} className="ml-1 inline" />
+                    </Button>
+                  </div>
+                ))}
+
+              {creators.length === 0 && (
+                <div className="py-6 text-center text-xs text-[#71717a]">
+                  No creators found in directory.
+                </div>
+              )}
+            </div>
+
+            <div className="pt-2 border-t border-[#27272a] flex justify-end">
+              <Button variant="outline" size="sm" onClick={() => setIsNewChatModalOpen(false)}>
+                Cancel
+              </Button>
+            </div>
+          </div>
         </Dialog>
       )}
     </div>

@@ -75,13 +75,13 @@ export function BrandWalletView({
           <div className="flex items-center justify-between text-xs text-[#71717a]">
             <div className="flex items-center space-x-1.5">
               <Coins size={14} className="text-[#3b82f6]" />
-              <span className="uppercase font-semibold tracking-wider">Usable Brand Credits</span>
+              <span className="uppercase font-semibold tracking-wider">Remaining Brand Credits</span>
             </div>
             <span className="text-[10px] text-[#10b981] font-semibold bg-[#10b981]/10 px-1.5 py-0.5 rounded">
               Active Balance
             </span>
           </div>
-          <p className="text-3xl font-extrabold text-[#fafafa] tabular-nums mt-2">{brandCredits}</p>
+          <p className="text-3xl font-extrabold text-[#fafafa] tabular-nums mt-2">{brandCredits} <span className="text-sm font-normal text-zinc-400">Credits Remaining</span></p>
           <p className="text-xs text-[#a1a1aa] mt-1">
             Estimated ~{Math.floor(brandCredits / 20)} poster generations or {Math.floor(brandCredits / 15)} AI campaign briefs
           </p>
@@ -223,7 +223,9 @@ export function BrandWalletView({
                   </div>
 
                   <span className={`font-bold tabular-nums ${isPositive ? 'text-[#3b82f6]' : 'text-[#e11d48]'}`}>
-                    {isPositive ? `+${tx.amount}` : tx.amount} credits
+                    {tx.currency === 'USD' || tx.isEscrow
+                      ? `${isPositive ? '+' : '-'}$${Math.abs(tx.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD`
+                      : `${isPositive ? `+${tx.amount}` : tx.amount} credits`}
                   </span>
                 </div>
               );

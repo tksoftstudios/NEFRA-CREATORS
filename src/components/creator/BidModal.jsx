@@ -35,7 +35,7 @@ export function BidModal({
 
   const handleDraftWithAI = async () => {
     if (credits < 5) {
-      alert("Insufficient credits (need 5 credits for AI proposal). Use the top bar refill button.");
+      alert(`Insufficient credits (${credits} remaining). You need 5 credits for AI proposal drafting. Please refill your wallet.`);
       return;
     }
 
@@ -73,7 +73,7 @@ export function BidModal({
       isOpen={isOpen}
       onClose={onClose}
       title={`Submit proposal: ${campaign.title}`}
-      description={`Brand: ${campaign.brandName} • Budget Cap: ${formatCents(campaign.budgetCents)}`}
+      description={`Brand: ${campaign.brandName} • Budget Cap: ${formatCents(campaign.budgetCents)} • Balance: ${credits} credits remaining`}
       maxWidth="max-w-xl"
     >
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -126,9 +126,10 @@ export function BidModal({
               onClick={handleDraftWithAI}
               disabled={isDraftingAI}
               className="text-xs text-[#3b82f6] hover:text-[#2563eb] font-medium flex items-center space-x-1 cursor-pointer disabled:opacity-50"
+              title={`Draft proposal with Vertex AI (5 credits • ${credits} remaining)`}
             >
               <Sparkles size={12} />
-              <span>{isDraftingAI ? "Drafting with Vertex AI..." : "Draft with Vertex AI (5 credits)"}</span>
+              <span>{isDraftingAI ? "Drafting with Vertex AI..." : `Draft with Vertex AI (5 credits • ${credits} remaining)`}</span>
             </button>
           </div>
 

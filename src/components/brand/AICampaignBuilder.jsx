@@ -109,13 +109,19 @@ export function AICampaignBuilder({
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
       {/* Header */}
-      <div className="border-b border-[#27272a] pb-6">
-        <h1 className="text-xl font-bold tracking-tight text-[#fafafa]">
-          AI campaign job card builder
-        </h1>
-        <p className="text-xs text-[#a1a1aa] mt-1">
-          Type your project goals in plain language. Google Cloud Vertex AI converts it into a structured, agency-grade job card.
-        </p>
+      <div className="border-b border-[#27272a] pb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-xl font-bold tracking-tight text-[#fafafa]">
+            AI campaign job card builder
+          </h1>
+          <p className="text-xs text-[#a1a1aa] mt-1">
+            Type your project goals in plain language. Google Cloud Vertex AI converts it into a structured, agency-grade job card.
+          </p>
+        </div>
+        <Badge className="bg-amber-500/15 text-amber-400 border-amber-500/30 text-xs flex items-center space-x-1.5 self-start sm:self-auto px-3 py-1">
+          <Coins size={12} className="text-amber-400" />
+          <span>Cost: 15 Brand Credits • {brandCredits} remaining</span>
+        </Badge>
       </div>
 
       {/* Prompt Input & 1-Click Inspirations */}
@@ -146,15 +152,21 @@ export function AICampaignBuilder({
           </div>
         </div>
 
-        <div className="flex justify-end pt-2">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
+          <span className="text-xs text-[#a1a1aa] flex items-center gap-1.5">
+            <Coins size={13} className="text-amber-400" />
+            <span>Cost: 15 Brand Credits • <strong className="text-[#fafafa]">{brandCredits} credits remaining</strong></span>
+          </span>
+
           <Button
             onClick={handleGenerate}
             disabled={isGenerating}
             size="sm"
             className="space-x-1.5 bg-[#3b82f6] hover:bg-[#2563eb] text-white"
+            title={`Synthesize Job Card (15 credits • ${brandCredits} remaining)`}
           >
             <Sparkles size={14} />
-            <span>{isGenerating ? "Synthesizing with Vertex AI..." : "Synthesize with Vertex AI"}</span>
+            <span>{isGenerating ? "Synthesizing with Vertex AI..." : `Synthesize with Vertex AI (15 credits • ${brandCredits} remaining)`}</span>
           </Button>
         </div>
       </Card>
@@ -203,9 +215,9 @@ export function AICampaignBuilder({
                 value={modality}
                 onChange={(e) => setModality(e.target.value)}
                 options={[
-                  { value: 'online', label: '🌐 Online / Remote' },
-                  { value: 'hybrid', label: '📦 Hybrid (Hardware)' },
-                  { value: 'physical', label: '✈️ Physical (On-site)' }
+                  { value: 'online', label: 'Online / Remote' },
+                  { value: 'hybrid', label: 'Hybrid (Hardware)' },
+                  { value: 'physical', label: 'Physical (On-site)' }
                 ]}
               />
             </div>

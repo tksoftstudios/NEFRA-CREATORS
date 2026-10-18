@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { TopBar } from './components/navigation/TopBar';
 import { Sidebar } from './components/navigation/Sidebar';
+import { PortalSwitchTransition } from './components/navigation/PortalSwitchTransition';
 import { PublicDirectory } from './components/directory/PublicDirectory';
 import { CreatorDetailModal } from './components/directory/CreatorDetailModal';
 
@@ -26,6 +27,7 @@ import { BrandContracts } from './components/brand/BrandContracts';
 import { NefraSenseAdvisor } from './components/brand/NefraSenseAdvisor';
 import { AIContentCreator } from './components/brand/AIContentCreator';
 import { BrandWalletView } from './components/brand/BrandWalletView';
+import { NefraSenseFloatingAdvisor } from './components/common/NefraSenseFloatingAdvisor';
 
 // Chat & Fiverr-Style Gig Inbox
 import { GigChatInbox } from './components/chat/GigChatInbox';
@@ -67,6 +69,19 @@ import { doc, setDoc, onSnapshot } from 'firebase/firestore';
 import { db } from './config/firebaseConfig.js';
 import { getSavedCurrency, saveCurrency } from './services/currencyService';
 import { AIScoreJustificationModal } from './components/creator/AIScoreJustificationModal';
+import {
+  deductCreditsInFirestore,
+  refillCreditsInFirestore,
+  subscribeToUserCredits,
+  saveBidToFirestore,
+  subscribeToBidsFromFirestore,
+  saveConversationToFirestore,
+  subscribeToConversationsFromFirestore,
+  subscribeToTransactions,
+  saveContractToFirestore,
+  subscribeToContractsFromFirestore,
+  recordEscrowPaymentInFirestore
+} from './services/firestoreSyncService';
 
 export default function App() {
   // Authentication & Session State
@@ -114,87 +129,96 @@ export default function App() {
   const [activePortal, setActivePortal] = useState('creator'); // 'creator' | 'brand' | 'admin'
   const [activeRoute, setActiveRoute] = useState('directory');
 
-  // Shared Data State
-  const [creators, setCreators] = useState(() => {
-    try {
-      const cached = localStorage.getItem('nefra_creators');
-      if (cached) {
-        const parsed = JSON.parse(cached);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          const cleaned = parsed.map(c => {
-            if (c.id === 'creator_01' && (c.subscribers === 428500 || c.handle === '@kaveentech')) {
-              return INITIAL_CREATORS[0];
-            }
-            return c;
-          });
-          return deduplicateCreators(cleaned);
-        }
-      }
-    } catch (e) {}
-    return deduplicateCreators(INITIAL_CREATORS);
+  // Full-screen Portal Switching Transition State
+  const [portalTransition, setPortalTransition] = useState({
+    isTransitioning: false,
+    targetPortal: null,
+    fromPortal: null
   });
+
+  // Sync portal theme with HTML document element
+  useEffect(() => {
+    document.documentElement.setAttribute('data-portal', activePortal);
+    if (activePortal === 'brand') {
+      document.documentElement.classList.add('theme-brand');
+      document.documentElement.classList.remove('theme-creator');
+    } else {
+      document.documentElement.classList.add('theme-creator');
+      document.documentElement.classList.remove('theme-brand');
+    }
+  }, [activePortal]);
+
+  // Shared Data State
+  const [creators, setCreators] = useState(() => deduplicateCreators(INITIAL_CREATORS));
 
   const [rateCards, setRateCards] = useState(INITIAL_RATE_CARDS);
   const [campaigns, setCampaigns] = useState(INITIAL_CAMPAIGNS);
   const [contracts, setContracts] = useState(INITIAL_CONTRACTS);
-  // Creator Credits (Nefra Credits)
-  const [creatorCredits, setCreatorCredits] = useState(() => {
-    try {
-      const saved = localStorage.getItem('nefra_creator_credits') || localStorage.getItem('nefra_credits');
-      if (saved !== null && !isNaN(Number(saved))) return Number(saved);
-    } catch (e) {}
-    return 50;
-  });
+  
+  // Creator Credits (Nefra Credits) - Synced from Firestore
+  const [creatorCredits, setCreatorCredits] = useState(50);
 
-  // Dedicated Brand Credits
-  const [brandCredits, setBrandCredits] = useState(() => {
-    try {
-      const saved = localStorage.getItem('nefra_brand_credits');
-      if (saved !== null && !isNaN(Number(saved))) return Number(saved);
-    } catch (e) {}
-    return 250;
-  });
+  // Dedicated Brand Credits - Synced from Firestore
+  const [brandCredits, setBrandCredits] = useState(250);
 
   // Backward compatibility alias
   const credits = creatorCredits;
   const setCredits = setCreatorCredits;
 
-  const [bids, setBids] = useState(() => {
-    try {
-      const saved = localStorage.getItem('nefra_bids');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
-    } catch (e) {}
-    return INITIAL_BIDS;
-  });
+  // Real-time Bids State - Synced from Firestore
+  const [bids, setBids] = useState(INITIAL_BIDS);
 
   useEffect(() => {
-    try {
-      localStorage.setItem('nefra_bids', JSON.stringify(bids));
-    } catch (e) {}
-  }, [bids]);
-
-  // Fiverr-Style Gig Conversations State
-  const [conversations, setConversations] = useState(() => {
-    try {
-      const saved = localStorage.getItem('nefra_conversations');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    const unsubscribeBids = subscribeToBidsFromFirestore((firestoreBids) => {
+      if (firestoreBids && firestoreBids.length > 0) {
+        setBids(firestoreBids);
       }
-    } catch (e) {}
-    return INITIAL_CONVERSATIONS;
-  });
+    });
+    return () => unsubscribeBids();
+  }, []);
 
+  // Fiverr-Style Gig Conversations State - Synced from Firestore
+  const [conversations, setConversations] = useState(INITIAL_CONVERSATIONS);
   const [activeConversationId, setActiveConversationId] = useState(null);
 
   useEffect(() => {
-    try {
-      localStorage.setItem('nefra_conversations', JSON.stringify(conversations));
-    } catch (e) {}
-  }, [conversations]);
+    const unsubscribeConvs = subscribeToConversationsFromFirestore((firestoreConvs) => {
+      if (firestoreConvs) {
+        setConversations(prev => {
+          const map = new Map();
+          INITIAL_CONVERSATIONS.forEach(c => map.set(c.id, c));
+          prev.forEach(c => map.set(c.id, c));
+          firestoreConvs.forEach(c => map.set(c.id, c));
+          return Array.from(map.values()).sort((a, b) => {
+            const timeA = new Date(a.lastActivity || a.updatedAt || 0).getTime();
+            const timeB = new Date(b.lastActivity || b.updatedAt || 0).getTime();
+            return timeB - timeA;
+          });
+        });
+      }
+    });
+    return () => unsubscribeConvs();
+  }, []);
+
+  // Real-time Escrow Contracts State - Synced from Firestore
+  useEffect(() => {
+    const unsubscribeContracts = subscribeToContractsFromFirestore((firestoreContracts) => {
+      if (firestoreContracts) {
+        setContracts(prev => {
+          const map = new Map();
+          INITIAL_CONTRACTS.forEach(c => map.set(c.id, c));
+          prev.forEach(c => map.set(c.id, c));
+          firestoreContracts.forEach(c => map.set(c.id, c));
+          return Array.from(map.values()).sort((a, b) => {
+            const timeA = new Date(a.updatedAt || a.events?.[a.events.length - 1]?.timestamp || 0).getTime();
+            const timeB = new Date(b.updatedAt || b.events?.[b.events.length - 1]?.timestamp || 0).getTime();
+            return timeB - timeA;
+          });
+        });
+      }
+    });
+    return () => unsubscribeContracts();
+  }, []);
 
   const unreadMessagesCount = React.useMemo(() => {
     return conversations.reduce((acc, conv) => {
@@ -202,35 +226,19 @@ export default function App() {
       return acc + count;
     }, 0);
   }, [conversations, activePortal]);
+
   const [auditLogs, setAuditLogs] = useState(INITIAL_AUDIT_LOG);
   const [platformConfig, setPlatformConfig] = useState(INITIAL_PLATFORM_CONFIG);
-  // Creator Transactions
-  const [creatorTransactions, setCreatorTransactions] = useState(() => {
-    try {
-      const saved = localStorage.getItem('nefra_creator_transactions') || localStorage.getItem('nefra_transactions');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
-    } catch (e) {}
-    return [
-      { description: "Welcome creator bonus", amount: 50, timestamp: "Today, 10:00 AM" }
-    ];
-  });
 
-  // Dedicated Brand Transactions
-  const [brandTransactions, setBrandTransactions] = useState(() => {
-    try {
-      const saved = localStorage.getItem('nefra_brand_transactions');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
-    } catch (e) {}
-    return [
-      { description: "Welcome business marketing credits", amount: 250, timestamp: "Today, 10:00 AM" }
-    ];
-  });
+  // Creator Transactions - Synced from Firestore
+  const [creatorTransactions, setCreatorTransactions] = useState([
+    { description: "Welcome creator bonus", amount: 50, timestamp: "Today, 10:00 AM" }
+  ]);
+
+  // Dedicated Brand Transactions - Synced from Firestore
+  const [brandTransactions, setBrandTransactions] = useState([
+    { description: "Welcome business marketing credits", amount: 250, timestamp: "Today, 10:00 AM" }
+  ]);
 
   // Backward compatibility alias
   const transactions = creatorTransactions;
@@ -239,12 +247,33 @@ export default function App() {
   // Modal State
   const [inspectedCreator, setInspectedCreator] = useState(null);
 
-  // Sync creators state to localStorage
+  // Real-time Firestore Credits & Transactions Subscription for current user / active role
   useEffect(() => {
-    try {
-      localStorage.setItem('nefra_creators', JSON.stringify(deduplicateCreators(creators)));
-    } catch (e) {}
-  }, [creators]);
+    const targetId = currentUser ? currentUser.uid : (activePortal === 'brand' ? 'brand_01' : 'creator_01');
+    const role = activePortal === 'brand' ? 'brand' : 'creator';
+
+    const unsubscribeCredits = subscribeToUserCredits(targetId, role, (balance) => {
+      if (role === 'brand') {
+        setBrandCredits(balance);
+      } else {
+        setCreatorCredits(balance);
+      }
+    });
+
+    const unsubscribeTransactions = subscribeToTransactions(targetId, role, (txList) => {
+      if (role === 'brand') {
+        setBrandTransactions(txList);
+      } else {
+        setCreatorTransactions(txList);
+      }
+    });
+
+    return () => {
+      unsubscribeCredits();
+      unsubscribeTransactions();
+    };
+  }, [currentUser, activePortal]);
+
 
   // Load all registered creators from Cloud Firestore into directory (deduplicated)
   useEffect(() => {
@@ -301,6 +330,52 @@ export default function App() {
     return creators[0] || INITIAL_CREATORS[0];
   }, [creators, currentUser, userProfile?.role]);
 
+  // Filtered creator directories:
+  // 1. For Brand / Business Portal: never show the business user's own profile or account
+  const brandVisibleCreators = React.useMemo(() => {
+    return deduplicateCreators(creators).filter(c => {
+      if (currentUser?.uid && (c.id === currentUser.uid || c.googleAccount?.uid === currentUser.uid)) {
+        return false;
+      }
+      if (currentUser?.email && c.email && c.email.toLowerCase() === currentUser.email.toLowerCase()) {
+        return false;
+      }
+      if (userProfile?.uid && c.id === userProfile.uid) {
+        return false;
+      }
+      if (userProfile?.role === 'brand' && (c.role === 'brand' || c.isBrand)) {
+        return false;
+      }
+      return true;
+    });
+  }, [creators, currentUser, userProfile]);
+
+  // 2. For Creator Portal: never show the creator's own profile in the directory to browse/hire
+  const creatorVisibleDirectory = React.useMemo(() => {
+    return deduplicateCreators(creators).filter(c => {
+      if (activeCreator?.id && c.id === activeCreator.id) {
+        return false;
+      }
+      if (currentUser?.uid && (c.id === currentUser.uid || c.googleAccount?.uid === currentUser.uid)) {
+        return false;
+      }
+      if (currentUser?.email && c.email && c.email.toLowerCase() === currentUser.email.toLowerCase()) {
+        return false;
+      }
+      return true;
+    });
+  }, [creators, activeCreator, currentUser]);
+
+  // 3. For Creator Portal: exclude any campaigns created by the creator's own brand account
+  const creatorVisibleCampaigns = React.useMemo(() => {
+    return campaigns.filter(camp => {
+      if (currentUser?.uid && camp.brandOrgId === currentUser.uid) {
+        return false;
+      }
+      return true;
+    });
+  }, [campaigns, currentUser]);
+
   // Real-time Firestore sync for the active creator profile (skip if brand)
   useEffect(() => {
     if (currentUser && userProfile?.role === 'brand') {
@@ -313,10 +388,6 @@ export default function App() {
       if (!data) return;
       if (typeof data.credits === 'number') {
         setCreatorCredits(data.credits);
-        try { 
-          localStorage.setItem('nefra_creator_credits', String(data.credits)); 
-          localStorage.setItem('nefra_credits', String(data.credits)); 
-        } catch (e) {}
       }
 
       setCreators((prev) => {
@@ -387,10 +458,8 @@ export default function App() {
           const data = docSnap.data();
           if (typeof data.brandCredits === 'number') {
             setBrandCredits(data.brandCredits);
-            try { localStorage.setItem('nefra_brand_credits', String(data.brandCredits)); } catch (e) {}
           } else if (typeof data.credits === 'number') {
             setBrandCredits(data.credits);
-            try { localStorage.setItem('nefra_brand_credits', String(data.credits)); } catch (e) {}
           }
         }
       });
@@ -399,6 +468,7 @@ export default function App() {
       console.warn('[App] Brand sync note:', err);
     }
   }, [currentUser, userProfile?.role]);
+
 
 
   // Handle Google Auth Trigger (from Landing or TopBar)
@@ -469,18 +539,11 @@ export default function App() {
         ? profile.creatorCredits 
         : (typeof profile.credits === 'number' ? profile.credits : 50);
       setCreatorCredits(creds);
-      try { 
-        localStorage.setItem('nefra_creator_credits', String(creds));
-        localStorage.setItem('nefra_credits', String(creds));
-      } catch (e) {}
     } else if (completedRole === 'brand') {
       const bCreds = typeof profile.brandCredits === 'number' 
         ? profile.brandCredits 
         : (typeof profile.credits === 'number' ? profile.credits : 250);
       setBrandCredits(bCreds);
-      try { 
-        localStorage.setItem('nefra_brand_credits', String(bCreds));
-      } catch (e) {}
     }
 
     confetti({
@@ -490,8 +553,17 @@ export default function App() {
     });
   };
 
-  // Switch Portal & default route
+  // Switch Portal with Full-screen Transition & default route
   const handlePortalChange = (portal) => {
+    if (portal === activePortal) return;
+
+    // Trigger full screen transition
+    setPortalTransition({
+      isTransitioning: true,
+      targetPortal: portal,
+      fromPortal: activePortal
+    });
+
     setActivePortal(portal);
     if (portal === 'creator') setActiveRoute('directory');
     else if (portal === 'brand') setActiveRoute('dashboard');
@@ -503,7 +575,9 @@ export default function App() {
     setContracts(prev => prev.map(c => {
       if (c.id === contractId) {
         try {
-          return transitionContract(c, nextState, metadata);
+          const updated = transitionContract(c, nextState, metadata);
+          saveContractToFirestore(updated);
+          return updated;
         } catch (err) {
           alert(err.message);
           return c;
@@ -549,6 +623,18 @@ export default function App() {
     };
 
     setContracts([newContract, ...contracts]);
+    saveContractToFirestore(newContract);
+    recordEscrowPaymentInFirestore({
+      brandOrgId: newContract.brandOrgId,
+      brandName: newContract.brandName,
+      creatorId: newContract.creatorId,
+      creatorName: newContract.creatorName,
+      contractId: newContract.id,
+      offerTitle: newContract.packageType,
+      amountCents: newContract.amountCents,
+      platformFeeCents: newContract.platformFeeCents,
+      netCreatorCents: newContract.netCreatorCents
+    });
     setActivePortal('brand');
     setActiveRoute('contracts');
 
@@ -561,7 +647,8 @@ export default function App() {
 
   // Creator Bidding
   const handleAddNewBid = (bidData) => {
-    setBids([bidData, ...bids]);
+    setBids(prev => [bidData, ...prev]);
+    saveBidToFirestore(bidData);
     setCampaigns(prev => prev.map(c => {
       if (c.id === bidData.campaignId) {
         return { ...c, bidsCount: (c.bidsCount || 0) + 1 };
@@ -607,6 +694,18 @@ export default function App() {
     };
 
     setContracts([newContract, ...contracts]);
+    saveContractToFirestore(newContract);
+    recordEscrowPaymentInFirestore({
+      brandOrgId: newContract.brandOrgId,
+      brandName: newContract.brandName,
+      creatorId: newContract.creatorId,
+      creatorName: newContract.creatorName,
+      contractId: newContract.id,
+      offerTitle: newContract.packageType,
+      amountCents: newContract.amountCents,
+      platformFeeCents: newContract.platformFeeCents,
+      netCreatorCents: newContract.netCreatorCents
+    });
     setBids(prev => prev.map(b => b.id === bid.id ? { ...b, status: 'accepted' } : b));
     setActivePortal('brand');
     setActiveRoute('contracts');
@@ -619,7 +718,7 @@ export default function App() {
   };
 
   // -------------------------------------------------------------
-  // FIVERR-STYLE GIG CHAT & CUSTOM OFFERS
+  // FIVERR-STYLE GIG CHAT & CUSTOM OFFERS (Firestore Synced)
   // -------------------------------------------------------------
   const handleSendMessage = (conversationId, messagePayload) => {
     setConversations(prev => prev.map(conv => {
@@ -629,13 +728,15 @@ export default function App() {
         timestamp: 'Just now',
         ...messagePayload
       };
-      return {
+      const updatedConv = {
         ...conv,
         messages: [...conv.messages, newMsg],
         lastActivity: new Date().toISOString(),
         unreadForBrand: messagePayload.senderRole === 'creator' ? (conv.unreadForBrand || 0) + 1 : 0,
         unreadForCreator: messagePayload.senderRole === 'brand' ? (conv.unreadForCreator || 0) + 1 : 0
       };
+      saveConversationToFirestore(updatedConv);
+      return updatedConv;
     }));
   };
 
@@ -653,27 +754,34 @@ export default function App() {
         offer: offerPayload,
         timestamp: 'Just now'
       };
-      return {
+      const updatedConv = {
         ...conv,
         messages: [...conv.messages, offerMsg],
         lastActivity: new Date().toISOString(),
         unreadForBrand: offerPayload.senderRole === 'creator' ? (conv.unreadForBrand || 0) + 1 : 0,
         unreadForCreator: offerPayload.senderRole === 'brand' ? (conv.unreadForCreator || 0) + 1 : 0
       };
+      saveConversationToFirestore(updatedConv);
+      return updatedConv;
     }));
   };
 
-  const handleAcceptCustomOffer = (conversationId, offer, conversation) => {
+  const handleAcceptCustomOffer = async (conversationId, offer, conversation) => {
     const amountCents = offer.priceCents;
     const fees = calculateContractFees(amountCents, platformConfig.feePercent);
     const milestones = calculateMilestones(amountCents, offer.turnaroundDays);
 
+    const brandOrgId = conversation.brandOrgId || currentUser?.uid || "brand_acme";
+    const brandName = conversation.brandName || userProfile?.companyName || "Acme Enterprise Corp";
+    const creatorId = conversation.creatorId || "creator_01";
+    const creatorName = conversation.creatorName || "Creator";
+
     const newContract = {
       id: `cnt_${Date.now().toString().slice(-6)}`,
-      brandOrgId: conversation.brandOrgId || currentUser?.uid || "brand_acme",
-      brandName: conversation.brandName || userProfile?.companyName || "My Brand",
-      creatorId: conversation.creatorId,
-      creatorName: conversation.creatorName,
+      brandOrgId,
+      brandName,
+      creatorId,
+      creatorName,
       campaignTitle: conversation.campaignTitle || offer.title,
       packageType: offer.title,
       deliverables: offer.deliverables,
@@ -700,6 +808,20 @@ export default function App() {
     };
 
     setContracts(prev => [newContract, ...prev]);
+    await saveContractToFirestore(newContract);
+
+    // Record monetary escrow transaction in Firestore for both parties
+    await recordEscrowPaymentInFirestore({
+      brandOrgId,
+      brandName,
+      creatorId,
+      creatorName,
+      contractId: newContract.id,
+      offerTitle: offer.title,
+      amountCents,
+      platformFeeCents: fees.platformFeeCents,
+      netCreatorCents: newContract.netCreatorCents
+    });
 
     // Mark offer accepted in chat and post confirmation bot note
     setConversations(prev => prev.map(conv => {
@@ -718,15 +840,17 @@ export default function App() {
         id: `msg_${Date.now()}`,
         senderRole: 'system',
         senderName: 'Nefra Escrow Bot',
-        text: `🎉 Custom Offer Accepted! Contract #${newContract.id} has been created and 100% pre-funded ($${(amountCents / 100).toLocaleString()}) in escrow. Funds are locked securely until deliverables are approved.`,
+        text: `Custom Offer Accepted! Contract #${newContract.id} has been created and 100% pre-funded ($${(amountCents / 100).toLocaleString()}) in escrow. Funds are locked securely until deliverables are approved.`,
         timestamp: 'Just now'
       };
 
-      return {
+      const updatedConv = {
         ...conv,
         messages: [...updatedMessages, systemMsg],
         lastActivity: new Date().toISOString()
       };
+      saveConversationToFirestore(updatedConv);
+      return updatedConv;
     }));
 
     confetti({
@@ -739,190 +863,126 @@ export default function App() {
   const handleOpenChatWithCreator = (creator, initialMessage = null) => {
     if (!creator) return;
 
-    const existingConv = conversations.find(c => c.creatorId === creator.id || c.creatorHandle === creator.handle);
+    const brandId = currentUser?.uid || 'brand_01';
+    const brandName = userProfile?.companyName || currentUser?.displayName || 'Acme Enterprise Corp';
+    const brandAvatar = currentUser?.photoURL || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=80&q=80';
+    const creatorId = creator.googleAccount?.uid || creator.uid || creator.id || 'creator_01';
+
+    // Must match BOTH this specific brand AND this specific creator
+    const existingConv = conversations.find(c => {
+      const isSameBrand = (c.brandOrgId === brandId) || 
+                          (currentUser?.uid && c.brandOrgId === currentUser.uid);
+      if (!isSameBrand) return false;
+
+      const isSameCreator = (c.creatorId === creatorId) ||
+                            (creator.id && c.creatorId === creator.id) ||
+                            (creator.handle && c.creatorHandle && c.creatorHandle.toLowerCase() === creator.handle.toLowerCase());
+      
+      return isSameCreator || c.id === `conv_${brandId}_${creatorId}`;
+    });
 
     if (existingConv) {
       if (initialMessage) {
         handleSendMessage(existingConv.id, {
           text: initialMessage,
           senderRole: activePortal === 'brand' ? 'brand' : 'creator',
-          senderName: activePortal === 'brand' ? (currentUser?.displayName || 'My Brand') : (activeCreator?.name || 'Creator')
+          senderName: activePortal === 'brand' ? brandName : (creator.name || 'Creator')
         });
       }
       setActiveConversationId(existingConv.id);
     } else {
-      const newConvId = `conv_${creator.id || Date.now()}_${Date.now()}`;
+      const newConvId = `conv_${brandId}_${creatorId}`;
       const newConv = {
         id: newConvId,
-        creatorId: creator.id,
+        creatorId: creatorId,
         creatorName: creator.name || 'Creator',
         creatorHandle: creator.handle || '@creator',
         creatorAvatar: creator.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
         creatorCategory: creator.category || 'Technology & AI',
         creatorAiScore: creator.aiScore || 90,
-        brandOrgId: currentUser?.uid || 'brand_acme',
-        brandName: userProfile?.companyName || 'My Brand',
-        brandAvatar: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=80&q=80',
-        campaignId: campaigns[0]?.id || 'camp_01',
-        campaignTitle: campaigns[0]?.title || 'Influencer Collaboration',
+        brandOrgId: brandId,
+        brandName,
+        brandAvatar,
+        campaignId: campaigns[0]?.id || 'camp_direct',
+        campaignTitle: campaigns[0]?.title || 'Direct Collaboration',
         gigTitle: 'Custom Integration Package',
         unreadForBrand: 0,
         unreadForCreator: 1,
         lastActivity: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
         messages: [
           {
             id: `msg_${Date.now()}`,
             senderRole: activePortal === 'brand' ? 'brand' : 'creator',
-            senderName: activePortal === 'brand' ? (currentUser?.displayName || 'My Brand') : (creator.name || 'Creator'),
+            senderName: activePortal === 'brand' ? brandName : (creator.name || 'Creator'),
             text: initialMessage || `Hi ${creator.name}! We'd love to discuss a video partnership and review custom gig packages.`,
             timestamp: 'Just now'
           }
         ]
       };
 
-      setConversations(prev => [newConv, ...prev]);
+      setConversations(prev => [newConv, ...prev.filter(c => c.id !== newConvId)]);
       setActiveConversationId(newConvId);
+      saveConversationToFirestore(newConv);
     }
 
     setActiveRoute('messages');
   };
 
-  // Spend Creator Credits (Nefra Credits)
-  const handleDeductCreatorCredits = (amount, description = 'AI feature usage') => {
-    let nextCredits = 0;
-    setCreatorCredits(prev => {
-      nextCredits = Math.max(0, prev - amount);
-      try { 
-        localStorage.setItem('nefra_creator_credits', String(nextCredits)); 
-        localStorage.setItem('nefra_credits', String(nextCredits)); 
-      } catch (e) {}
-      return nextCredits;
-    });
-    setCreatorTransactions(prev => {
-      const updated = [
-        { description, amount: -amount, timestamp: "Just now" },
-        ...prev
-      ];
-      try { 
-        localStorage.setItem('nefra_creator_transactions', JSON.stringify(updated)); 
-        localStorage.setItem('nefra_transactions', JSON.stringify(updated)); 
-      } catch (e) {}
-      return updated;
-    });
-    console.log(`%c💳 [Creator Billing] Deducted ${amount} Credits (${description}). Balance: ${nextCredits}`, 'color: #f59e0b; font-weight: bold;');
-    
+  // Spend Creator Credits (Nefra Credits) - Stored in Cloud Firestore
+  const handleDeductCreatorCredits = async (amount, description = 'AI feature usage') => {
     const targetId = currentUser ? currentUser.uid : 'creator_01';
-    if (db) {
-      try {
-        const creatorRef = doc(db, 'creators', targetId);
-        setDoc(creatorRef, { credits: nextCredits }, { merge: true });
-        const userRef = doc(db, 'users', targetId);
-        setDoc(userRef, { creatorCredits: nextCredits, credits: nextCredits }, { merge: true });
-      } catch (e) {}
-    }
+    setCreatorCredits(prev => Math.max(0, prev - amount));
+    const result = await deductCreditsInFirestore({
+      userId: targetId,
+      role: 'creator',
+      amount,
+      description
+    });
+    console.log(`%c💳 [Creator Billing Firestore] Deducted ${amount} Credits (${description}). Remaining: ${result.remainingCredits}`, 'color: #f59e0b; font-weight: bold;');
+    return result;
   };
 
-  // Refill Creator Credits (via Stripe Sandbox)
-  const handleRefillCreatorCredits = (amount = 50, receipt = null) => {
-    let nextCredits = 0;
-    setCreatorCredits(prev => {
-      nextCredits = prev + amount;
-      try { 
-        localStorage.setItem('nefra_creator_credits', String(nextCredits)); 
-        localStorage.setItem('nefra_credits', String(nextCredits)); 
-      } catch (e) {}
-      return nextCredits;
-    });
-    const txDesc = receipt?.paymentIntentId
-      ? `Stripe Sandbox Top-up (+${amount} credits • Tx: ${receipt.paymentIntentId.slice(-8)})`
-      : `Credit refill bonus (+${amount} credits)`;
-
-    setCreatorTransactions(prev => {
-      const updated = [
-        { description: txDesc, amount, timestamp: "Just now" },
-        ...prev
-      ];
-      try { 
-        localStorage.setItem('nefra_creator_transactions', JSON.stringify(updated)); 
-        localStorage.setItem('nefra_transactions', JSON.stringify(updated)); 
-      } catch (e) {}
-      return updated;
-    });
-
-    console.log(`%c💳 [Creator Stripe Billing] Added +${amount} Credits. New Balance: ${nextCredits}`, 'color: #10b981; font-weight: bold;');
-
+  // Refill Creator Credits (via Stripe Sandbox) - Stored in Cloud Firestore
+  const handleRefillCreatorCredits = async (amount = 50, receipt = null) => {
     const targetId = currentUser ? currentUser.uid : 'creator_01';
-    if (db) {
-      try {
-        const creatorRef = doc(db, 'creators', targetId);
-        setDoc(creatorRef, { credits: nextCredits }, { merge: true });
-        const userRef = doc(db, 'users', targetId);
-        setDoc(userRef, { creatorCredits: nextCredits, credits: nextCredits }, { merge: true });
-      } catch (e) {}
-    }
+    setCreatorCredits(prev => prev + amount);
+    const result = await refillCreditsInFirestore({
+      userId: targetId,
+      role: 'creator',
+      amount,
+      receipt
+    });
+    console.log(`%c💳 [Creator Stripe Billing Firestore] Added +${amount} Credits. Balance: ${result.remainingCredits}`, 'color: #10b981; font-weight: bold;');
+    return result;
   };
 
-  // Spend Brand Credits
-  const handleDeductBrandCredits = (amount, description = 'Brand AI feature usage') => {
-    let nextCredits = 0;
-    setBrandCredits(prev => {
-      nextCredits = Math.max(0, prev - amount);
-      try { localStorage.setItem('nefra_brand_credits', String(nextCredits)); } catch (e) {}
-      return nextCredits;
-    });
-    setBrandTransactions(prev => {
-      const updated = [
-        { description, amount: -amount, timestamp: "Just now" },
-        ...prev
-      ];
-      try { localStorage.setItem('nefra_brand_transactions', JSON.stringify(updated)); } catch (e) {}
-      return updated;
-    });
-    console.log(`%c💳 [Brand Billing] Deducted ${amount} Brand Credits (${description}). Balance: ${nextCredits}`, 'color: #3b82f6; font-weight: bold;');
-
+  // Spend Brand Credits - Stored in Cloud Firestore
+  const handleDeductBrandCredits = async (amount, description = 'Brand AI feature usage') => {
     const targetId = currentUser ? currentUser.uid : 'brand_01';
-    if (db) {
-      try {
-        const brandRef = doc(db, 'brands', targetId);
-        setDoc(brandRef, { brandCredits: nextCredits, credits: nextCredits }, { merge: true });
-        const userRef = doc(db, 'users', targetId);
-        setDoc(userRef, { brandCredits: nextCredits }, { merge: true });
-      } catch (e) {}
-    }
+    setBrandCredits(prev => Math.max(0, prev - amount));
+    const result = await deductCreditsInFirestore({
+      userId: targetId,
+      role: 'brand',
+      amount,
+      description
+    });
+    console.log(`%c💳 [Brand Billing Firestore] Deducted ${amount} Brand Credits (${description}). Balance: ${result.remainingCredits}`, 'color: #3b82f6; font-weight: bold;');
+    return result;
   };
 
-  // Refill Brand Credits (via Stripe Sandbox)
-  const handleRefillBrandCredits = (amount = 250, receipt = null) => {
-    let nextCredits = 0;
-    setBrandCredits(prev => {
-      nextCredits = prev + amount;
-      try { localStorage.setItem('nefra_brand_credits', String(nextCredits)); } catch (e) {}
-      return nextCredits;
-    });
-    const txDesc = receipt?.paymentIntentId
-      ? `Stripe Business Top-up (+${amount} brand credits • Tx: ${receipt.paymentIntentId.slice(-8)})`
-      : `Brand credit refill (+${amount} brand credits)`;
-
-    setBrandTransactions(prev => {
-      const updated = [
-        { description: txDesc, amount, timestamp: "Just now" },
-        ...prev
-      ];
-      try { localStorage.setItem('nefra_brand_transactions', JSON.stringify(updated)); } catch (e) {}
-      return updated;
-    });
-
-    console.log(`%c💳 [Brand Stripe Billing] Added +${amount} Brand Credits. Balance: ${nextCredits}`, 'color: #3b82f6; font-weight: bold;');
-
+  // Refill Brand Credits (via Stripe Sandbox) - Stored in Cloud Firestore
+  const handleRefillBrandCredits = async (amount = 250, receipt = null) => {
     const targetId = currentUser ? currentUser.uid : 'brand_01';
-    if (db) {
-      try {
-        const brandRef = doc(db, 'brands', targetId);
-        setDoc(brandRef, { brandCredits: nextCredits, credits: nextCredits }, { merge: true });
-        const userRef = doc(db, 'users', targetId);
-        setDoc(userRef, { brandCredits: nextCredits }, { merge: true });
-      } catch (e) {}
-    }
+    setBrandCredits(prev => prev + amount);
+    const result = await refillCreditsInFirestore({
+      userId: targetId,
+      role: 'brand',
+      amount,
+      receipt
+    });
+    console.log(`%c💳 [Brand Stripe Billing Firestore] Added +${amount} Brand Credits. Balance: ${result.remainingCredits}`, 'color: #3b82f6; font-weight: bold;');
+    return result;
   };
 
   // Aliases for creator credits
@@ -998,9 +1058,11 @@ export default function App() {
   if (authLoading) {
     return (
       <div className="min-h-screen bg-[#000000] flex flex-col items-center justify-center text-white font-sans selection:bg-[#e11d48]">
-        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#e11d48] to-[#9333ea] flex items-center justify-center font-bold text-white text-lg shadow-lg shadow-[#e11d48]/20 animate-pulse">
-          N
-        </div>
+        <img
+          src="/LOGO.png"
+          alt="NEFRA Logo"
+          className="w-12 h-12 rounded-xl object-contain bg-[#09090b] border border-[#27272a] shadow-xl shadow-[#e11d48]/20 animate-pulse"
+        />
         <p className="mt-4 text-xs text-[#a1a1aa] tracking-widest uppercase font-semibold">
           Synchronizing secure Google session...
         </p>
@@ -1063,7 +1125,22 @@ export default function App() {
 
   // 4. Authenticated & Onboarded -> MAIN PORTAL WORKSPACE
   return (
-    <div className="min-h-screen bg-[#000000] text-[#fafafa] flex flex-col font-sans">
+    <div className="min-h-screen bg-[#000000] text-[#fafafa] flex flex-col font-sans" data-portal={activePortal}>
+      {/* Full-Screen Portal Switching Transition */}
+      {portalTransition.isTransitioning && (
+        <PortalSwitchTransition
+          targetPortal={portalTransition.targetPortal}
+          fromPortal={portalTransition.fromPortal}
+          onComplete={() => {
+            setPortalTransition({
+              isTransitioning: false,
+              targetPortal: null,
+              fromPortal: null
+            });
+          }}
+        />
+      )}
+
       {/* Top Bar with Portal Switcher, Account Indicator & Switch Account Option */}
       <TopBar
         activePortal={activePortal}
@@ -1104,7 +1181,7 @@ export default function App() {
             <>
               {activeRoute === 'directory' && (
                 <PublicDirectory
-                  creators={creators}
+                  creators={creatorVisibleDirectory}
                   onSelectCreator={(c) => setInspectedCreator(c)}
                 />
               )}
@@ -1113,11 +1190,12 @@ export default function App() {
                   conversations={conversations}
                   activeConversationId={activeConversationId}
                   activePortal="creator"
-                  creators={creators}
+                  creators={creatorVisibleDirectory}
                   currentUser={currentUser}
                   onSendMessage={handleSendMessage}
                   onSendCustomOffer={handleSendCustomOffer}
                   onAcceptCustomOffer={handleAcceptCustomOffer}
+                  onOpenChat={handleOpenChatWithCreator}
                   onNavigate={setActiveRoute}
                 />
               )}
@@ -1152,7 +1230,7 @@ export default function App() {
               )}
               {activeRoute === 'opportunities' && (
                 <OpportunitiesBoard
-                  campaigns={campaigns}
+                  campaigns={creatorVisibleCampaigns}
                   creator={activeCreator}
                   credits={creatorCredits}
                   onDeductCredits={handleDeductCreatorCredits}
@@ -1228,7 +1306,10 @@ export default function App() {
                   campaigns={campaigns}
                   contracts={contracts}
                   bids={bids}
+                  creators={brandVisibleCreators}
+                  brandCredits={brandCredits}
                   onNavigate={setActiveRoute}
+                  onOpenChat={handleOpenChatWithCreator}
                 />
               )}
               {activeRoute === 'content-creator' && (
@@ -1247,11 +1328,12 @@ export default function App() {
                   conversations={conversations}
                   activeConversationId={activeConversationId}
                   activePortal="brand"
-                  creators={creators}
+                  creators={brandVisibleCreators}
                   currentUser={currentUser}
                   onSendMessage={handleSendMessage}
                   onSendCustomOffer={handleSendCustomOffer}
                   onAcceptCustomOffer={handleAcceptCustomOffer}
+                  onOpenChat={handleOpenChatWithCreator}
                   onNavigate={setActiveRoute}
                 />
               )}
@@ -1259,7 +1341,7 @@ export default function App() {
                 <BrandCampaignsManager
                   campaigns={campaigns}
                   bids={bids}
-                  creators={creators}
+                  creators={brandVisibleCreators}
                   onNavigate={setActiveRoute}
                   onAcceptBid={handleAcceptBid}
                   onOpenChat={handleOpenChatWithCreator}
@@ -1276,10 +1358,11 @@ export default function App() {
               )}
               {activeRoute === 'creators' && (
                 <CreatorMatchList
-                  creators={creators}
+                  creators={brandVisibleCreators}
                   rateCards={rateCards}
                   onSelectCreator={(c) => setInspectedCreator(c)}
                   onHirePackage={handleHirePackage}
+                  onOpenChat={handleOpenChatWithCreator}
                 />
               )}
               {activeRoute === 'contracts' && (
@@ -1292,7 +1375,7 @@ export default function App() {
               {activeRoute === 'advisor' && (
                 <NefraSenseAdvisor
                   campaigns={campaigns}
-                  creators={creators}
+                  creators={brandVisibleCreators}
                   brandCredits={brandCredits}
                   onDeductBrandCredits={handleDeductBrandCredits}
                   onOpenTopup={() => setActiveRoute('credits')}
@@ -1374,6 +1457,22 @@ export default function App() {
         isOpen={isScoreJustificationOpen}
         onClose={() => setIsScoreJustificationOpen(false)}
         creator={activeCreator}
+      />
+
+      {/* Global Always-On-Top NefraSense Strategic & Trends Advisor (Bottom Right) */}
+      <NefraSenseFloatingAdvisor
+        activePortal={activePortal}
+        activeRoute={activeRoute}
+        creators={activePortal === 'brand' ? brandVisibleCreators : creatorVisibleDirectory}
+        campaigns={campaigns}
+        activeCreator={activeCreator}
+        activeCampaign={campaigns[0]}
+        currentUser={currentUser}
+        creatorCredits={creatorCredits}
+        brandCredits={brandCredits}
+        onDeductCredits={handleDeductCreatorCredits}
+        onDeductBrandCredits={handleDeductBrandCredits}
+        onOpenTopup={() => setActiveRoute('credits')}
       />
     </div>
   );

@@ -278,12 +278,13 @@ export function ChannelAuditView({
             disabled={isAuditing}
             size="sm"
             className="space-x-1.5 bg-[#e11d48] hover:bg-[#be123c] text-white shadow-sm"
+            title={`Audit ${selectedDepth.shortLabel} (${selectedDepth.creditsCost} credits • ${credits} remaining)`}
           >
             <Sparkles size={14} className={isAuditing ? "animate-spin" : ""} />
             <span>
               {isAuditing 
                 ? `Auditing ${selectedDepth.shortLabel}...` 
-                : `Audit ${selectedDepth.shortLabel} (${selectedDepth.creditsCost} Credits)`}
+                : `Audit ${selectedDepth.shortLabel} (${selectedDepth.creditsCost} credits • ${credits} remaining)`}
             </span>
           </Button>
         </div>
@@ -298,8 +299,8 @@ export function ChannelAuditView({
               <h3 className="text-sm font-semibold text-[#fafafa]">
                 Audit Scan Depth &amp; Credit Allocation
               </h3>
-              <Badge variant="outline" className="text-[10px]">
-                Default: 3 Videos (10 Credits)
+              <Badge variant="outline" className="text-[10px] text-amber-400 border-amber-500/30">
+                Wallet: {credits} credits remaining
               </Badge>
             </div>
             <p className="text-xs text-[#a1a1aa] mt-1 leading-relaxed">
@@ -350,12 +351,19 @@ export function ChannelAuditView({
                 </div>
 
                 <div className="mt-3 pt-2.5 border-t border-[#27272a]/40 flex items-center justify-between text-[11px]">
-                  <span className={isSelected ? 'text-[#e11d48] font-semibold' : 'text-[#71717a]'}>
-                    {isSelected ? '✓ Selected Plan' : 'Click to select'}
+                  <span className={isSelected ? 'text-[#e11d48] font-semibold flex items-center space-x-1' : 'text-[#71717a]'}>
+                    {isSelected ? (
+                      <>
+                        <Check size={12} className="inline mr-1" />
+                        <span>Selected Plan</span>
+                      </>
+                    ) : (
+                      'Click to select'
+                    )}
                   </span>
-                  {!hasEnoughCredits && (
-                    <span className="text-[#ef4444] text-[10px] font-medium">Needs refill</span>
-                  )}
+                  <span className={hasEnoughCredits ? 'text-zinc-400 text-[10px]' : 'text-[#ef4444] text-[10px] font-medium'}>
+                    {hasEnoughCredits ? `${credits} remaining` : `Needs ${tier.creditsCost - credits} more`}
+                  </span>
                 </div>
               </div>
             );

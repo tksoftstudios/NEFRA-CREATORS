@@ -57,9 +57,9 @@ export function CreatorWalletView({
         <Card className="bg-[#09090b]">
           <div className="flex items-center space-x-2 text-xs text-[#71717a]">
             <Coins size={14} className="text-[#e11d48]" />
-            <span className="uppercase font-semibold tracking-wider">Usable credit balance</span>
+            <span className="uppercase font-semibold tracking-wider">Remaining credit balance</span>
           </div>
-          <p className="text-3xl font-bold text-[#fafafa] tabular-nums mt-2">{credits}</p>
+          <p className="text-3xl font-bold text-[#fafafa] tabular-nums mt-2">{credits} <span className="text-sm font-normal text-zinc-400">Credits Remaining</span></p>
           <p className="text-xs text-[#a1a1aa] mt-1">Sufficient for {Math.floor(credits / 5)} AI pitch proposals</p>
         </Card>
 
@@ -104,8 +104,10 @@ export function CreatorWalletView({
                     </div>
                   </div>
 
-                  <span className={`font-bold tabular-nums ${isPositive ? 'text-[#fafafa]' : 'text-[#e11d48]'}`}>
-                    {isPositive ? `+${tx.amount}` : tx.amount} credits
+                  <span className={`font-bold tabular-nums ${isPositive ? 'text-[#10b981]' : 'text-[#e11d48]'}`}>
+                    {tx.currency === 'USD' || tx.isEscrow
+                      ? `${isPositive ? '+' : '-'}$${Math.abs(tx.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD`
+                      : `${isPositive ? `+${tx.amount}` : tx.amount} credits`}
                   </span>
                 </div>
               );

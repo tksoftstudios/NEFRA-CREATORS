@@ -17,7 +17,8 @@ import {
   Play,
   Flame,
   Star,
-  Users
+  Users,
+  Check
 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
@@ -97,9 +98,11 @@ export function LandingPage({
       {/* Landing Navigation Bar */}
       <header className="h-16 border-b border-[#27272a]/80 bg-[#000000]/80 backdrop-blur-md px-6 lg:px-12 flex items-center justify-between sticky top-0 z-50">
         <div className="flex items-center space-x-3">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#e11d48] to-[#9333ea] flex items-center justify-center font-bold text-white text-base shadow-lg shadow-[#e11d48]/30">
-            N
-          </div>
+          <img
+            src="/LOGO.png"
+            alt="NEFRA Logo"
+            className="w-8 h-8 rounded-lg object-contain bg-[#09090b] border border-[#27272a] shadow-lg shadow-[#e11d48]/20 shrink-0"
+          />
           <div>
             <div className="flex items-center space-x-2">
               <span className="font-bold text-base tracking-tight text-[#fafafa]">NEFRA</span>
@@ -481,8 +484,8 @@ export function LandingPage({
                                   alt={creator.name}
                                   className="w-14 h-14 rounded-full object-cover border-2 border-[#27272a] group-hover:border-[#e11d48] transition-colors"
                                 />
-                                <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-[#10b981] border-2 border-[#09090b] flex items-center justify-center text-white text-[9px] font-bold">
-                                  ✓
+                                <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-[#10b981] border-2 border-[#09090b] flex items-center justify-center text-white">
+                                  <Check size={11} strokeWidth={3} />
                                 </div>
                               </div>
                               <div className="min-w-0 flex-1">
@@ -599,9 +602,11 @@ export function LandingPage({
       <footer className="border-t border-[#27272a] bg-[#050505] py-8 px-6 text-center text-xs text-[#71717a]">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center space-x-2">
-            <div className="w-5 h-5 rounded bg-[#e11d48] flex items-center justify-center font-bold text-white text-[10px]">
-              N
-            </div>
+            <img
+              src="/LOGO.png"
+              alt="NEFRA Logo"
+              className="w-5 h-5 rounded object-contain bg-[#09090b] border border-[#27272a] shrink-0"
+            />
             <span className="font-semibold text-[#fafafa]">NEFRA Creators Platform</span>
             <span>— Global Escrow & Creator Engine</span>
           </div>

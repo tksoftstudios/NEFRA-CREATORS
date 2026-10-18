@@ -4,7 +4,7 @@ import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
 import { askNefraSense } from '../../packages/ai/geminiClient';
 import { deduplicateCreators } from '../../lib/utils';
-import { Sparkles, Send, Bot, User, Database, ChevronDown, ChevronUp, CheckCircle2, ShieldCheck, Coins } from 'lucide-react';
+import { Sparkles, Send, Bot, User, Database, ChevronDown, ChevronUp, CheckCircle2, ShieldCheck, Coins, Zap, BarChart3, Target, Lightbulb } from 'lucide-react';
 
 export function NefraSenseAdvisor({ 
   campaigns = [], 
@@ -40,19 +40,23 @@ export function NefraSenseAdvisor({
 
   const quickPills = [
     { 
-      label: "⚡ Optimize Campaign ROI", 
+      label: "Optimize Campaign ROI", 
+      icon: Zap,
       prompt: `How should I allocate my $${((activeCampaign.budgetCents || 250000) / 100).toLocaleString()} budget between dedicated video vs YouTube Shorts?` 
     },
     { 
-      label: `📊 Compare ${c1.name.split(' ')[0]} vs ${c2.name.split(' ')[0]}`, 
+      label: `Compare ${c1.name.split(' ')[0]} vs ${c2.name.split(' ')[0]}`, 
+      icon: BarChart3,
       prompt: `Compare ${c1.name} (${c1.handle}) and ${c2.name} (${c2.handle}) — who drives higher technical conversion?` 
     },
     { 
-      label: `🎯 Best Fit for ${activeCampaign.category || 'Tech'}`, 
+      label: `Best Fit for ${activeCampaign.category || 'Tech'}`, 
+      icon: Target,
       prompt: `Which verified creators in our database best fit our campaign budget and category?` 
     },
     { 
-      label: "💡 High-Retention Hooks", 
+      label: "High-Retention Hooks", 
+      icon: Lightbulb,
       prompt: `Draft 3 catchy 5-second video hooks tailored for ${activeCampaign.title}.` 
     }
   ];
@@ -94,7 +98,8 @@ export function NefraSenseAdvisor({
       {/* Header with Option 1 RAG status & Guardrails */}
       <div className="border-b border-[#27272a] pb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2.5">
+            <img src="/nefrasense.png" alt="NefraSense Logo" className="w-6 h-6 object-contain" />
             <h1 className="text-xl font-bold tracking-tight text-[#fafafa]">
               NefraSense strategic advisor
             </h1>
@@ -103,6 +108,10 @@ export function NefraSenseAdvisor({
             <Badge className="bg-[#8b5cf6]/15 text-[#a78bfa] border-[#8b5cf6]/30 text-[10px] flex items-center space-x-1">
               <ShieldCheck size={10} className="mr-0.5" />
               <span>Creator Fame Guardrails</span>
+            </Badge>
+            <Badge className="bg-amber-500/15 text-amber-400 border-amber-500/30 text-[10px] flex items-center space-x-1">
+              <Coins size={10} className="mr-0.5" />
+              <span>10 credits/query • {brandCredits} remaining</span>
             </Badge>
           </div>
           <p className="text-xs text-[#a1a1aa] mt-1">
@@ -175,20 +184,36 @@ export function NefraSenseAdvisor({
 
       {/* Quick Action Pills */}
       <div className="flex flex-wrap gap-2">
-        {quickPills.map((pill, idx) => (
-          <button
-            key={idx}
-            onClick={() => handleSend(pill.prompt)}
-            className="px-3 py-1.5 rounded-lg bg-[#18181b] border border-[#27272a] text-xs text-[#fafafa] hover:border-[#e11d48] transition-colors cursor-pointer"
-          >
-            {pill.label}
-          </button>
-        ))}
+        {quickPills.map((pill, idx) => {
+          const PillIcon = pill.icon;
+          return (
+            <button
+              key={idx}
+              onClick={() => handleSend(pill.prompt)}
+              className="px-3 py-1.5 rounded-lg bg-[#18181b] border border-[#27272a] text-xs text-[#fafafa] hover:border-[#e11d48] transition-colors cursor-pointer flex items-center space-x-1.5"
+            >
+              {PillIcon && <PillIcon size={13} className="text-[#e11d48]" />}
+              <span>{pill.label}</span>
+            </button>
+          );
+        })}
       </div>
 
       {/* Chat Area */}
-      <Card className="flex flex-col h-[520px] p-0 overflow-hidden">
-        <div className="flex-1 p-4 overflow-y-auto space-y-4">
+      <Card className="flex flex-col h-[520px] p-0 overflow-hidden relative">
+        {/* Subtle Watermark Logo in Background */}
+        <div 
+          className="absolute right-6 bottom-16 pointer-events-none select-none z-0 opacity-[0.06] transition-opacity duration-300"
+          aria-hidden="true"
+        >
+          <img 
+            src="/nefrasense.png" 
+            alt="" 
+            className="w-32 h-32 sm:w-40 sm:h-40 object-contain" 
+          />
+        </div>
+
+        <div className="flex-1 p-4 overflow-y-auto space-y-4 relative z-10">
           {messages.map((msg, idx) => {
             const isUser = msg.role === 'user';
             return (
@@ -197,9 +222,9 @@ export function NefraSenseAdvisor({
                 className={`flex items-start space-x-3 ${isUser ? 'flex-row-reverse space-x-reverse' : ''}`}
               >
                 <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${
-                  isUser ? 'bg-[#27272a] text-[#fafafa]' : 'bg-[#e11d48] text-white'
+                  isUser ? 'bg-[#27272a] text-[#fafafa]' : 'bg-[#e11d48]/20 border border-[#e11d48]/40 p-1'
                 }`}>
-                  {isUser ? <User size={14} /> : <Bot size={14} />}
+                  {isUser ? <User size={14} /> : <img src="/nefrasense.png" alt="NefraSense" className="w-full h-full object-contain" />}
                 </div>
 
                 <div className={`p-3.5 rounded-lg max-w-[85%] text-xs leading-relaxed ${
@@ -249,10 +274,11 @@ export function NefraSenseAdvisor({
             size="sm"
             onClick={() => handleSend()}
             disabled={!inputText.trim() || isThinking}
-            className="space-x-1"
+            className="space-x-1.5"
+            title={`Send query (10 credits • ${brandCredits} remaining)`}
           >
             <Send size={14} />
-            <span>Send</span>
+            <span>Send (10 credits • {brandCredits} remaining)</span>
           </Button>
         </div>
       </Card>

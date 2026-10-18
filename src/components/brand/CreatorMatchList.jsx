@@ -3,13 +3,14 @@ import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
 import { formatCents, deduplicateCreators } from '../../lib/utils';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, MessageCircle, Plane, Globe } from 'lucide-react';
 
 export function CreatorMatchList({
   creators = [],
   rateCards = [],
   onSelectCreator,
-  onHirePackage
+  onHirePackage,
+  onOpenChat
 }) {
   const uniqueCreators = deduplicateCreators(creators);
 
@@ -69,8 +70,18 @@ export function CreatorMatchList({
 
                 {/* Modality tags */}
                 <div className="flex flex-wrap gap-1.5 mt-3">
-                  <Badge variant="outline">
-                    {creator.willingToTravel ? "✈️ Global travel ready" : "🌐 Remote-only"}
+                  <Badge variant="outline" className="flex items-center space-x-1">
+                    {creator.willingToTravel ? (
+                      <>
+                        <Plane size={11} className="text-[#a1a1aa]" />
+                        <span>Global travel ready</span>
+                      </>
+                    ) : (
+                      <>
+                        <Globe size={11} className="text-[#a1a1aa]" />
+                        <span>Remote-only</span>
+                      </>
+                    )}
                   </Badge>
                   <Badge variant="outline">
                     From {formatCents(creator.startingPriceCents)}
@@ -79,19 +90,35 @@ export function CreatorMatchList({
               </div>
 
               {/* Actions */}
-              <div className="pt-3 border-t border-[#27272a] flex items-center justify-between">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => onSelectCreator(creator)}
-                >
-                  View 3-video audit
-                </Button>
+              <div className="pt-3 border-t border-[#27272a] flex items-center justify-between gap-2 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onSelectCreator(creator)}
+                    className="cursor-pointer"
+                  >
+                    View audit
+                  </Button>
+
+                  {onOpenChat && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => onOpenChat(creator, `Hi ${creator.name}! I'm interested in collaborating on a video campaign for our brand. Let's discuss custom deliverables.`)}
+                      className="border-[#1db954]/40 text-[#1ed760] hover:bg-[#1db954]/10 space-x-1.5 cursor-pointer text-xs"
+                    >
+                      <MessageCircle size={13} />
+                      <span>Chat</span>
+                    </Button>
+                  )}
+                </div>
 
                 {creatorPackages.length > 0 && (
                   <Button
                     size="sm"
                     onClick={() => onHirePackage(creator, creatorPackages[0])}
+                    className="bg-[#1db954] hover:bg-[#1ed760] text-black font-semibold cursor-pointer"
                   >
                     Hire package ({formatCents(creatorPackages[0].priceCents)})
                   </Button>

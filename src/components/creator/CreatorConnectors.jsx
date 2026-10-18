@@ -262,7 +262,7 @@ export function CreatorConnectors({
     }
 
     setAutoAuditChannel(null);
-    showToast(`🎉 Verified: ${creator.name}! Automatic AI Audit complete & rate cards calibrated.`);
+    showToast(`Verified: ${creator.name}! Automatic AI Audit complete & rate cards calibrated.`);
   };
 
   const handleDisconnectYouTube = async () => {

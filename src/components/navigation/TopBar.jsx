@@ -77,12 +77,24 @@ export function TopBar({
     <header className="h-14 border-b border-[#27272a] bg-[#000000] px-4 sm:px-6 flex items-center justify-between sticky top-0 z-40 transition-colors">
       {/* Left: Portal Identity */}
       <div className="flex items-center space-x-3">
-        <div className="w-6 h-6 rounded bg-[#e11d48] flex items-center justify-center font-bold text-white text-xs shadow-md shadow-[#e11d48]/20 shrink-0">
-          N
+        <img
+          src="/LOGO.png"
+          alt="NEFRA Logo"
+          className="w-7 h-7 rounded-md object-contain bg-[#09090b] border border-[#27272a] shadow-sm shrink-0"
+        />
+        <div className="flex items-center space-x-2">
+          <span className="font-semibold text-sm tracking-tight text-[#fafafa] hidden sm:inline">
+            {portalTitles[activePortal] || "NEFRA Platform"}
+          </span>
+          <span className={`text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border hidden md:inline-flex items-center gap-1 ${
+            activePortal === 'brand'
+              ? 'bg-[#1db954]/15 text-[#1ed760] border-[#1db954]/40'
+              : 'bg-[#e11d48]/15 text-[#f43f5e] border-[#e11d48]/40'
+          }`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${activePortal === 'brand' ? 'bg-[#1db954]' : 'bg-[#e11d48]'}`} />
+            {activePortal === 'brand' ? 'Spotify Green' : 'Creator Red'}
+          </span>
         </div>
-        <span className="font-semibold text-sm tracking-tight text-[#fafafa] hidden sm:inline">
-          {portalTitles[activePortal] || "NEFRA Platform"}
-        </span>
 
         {/* AI Score Badge (Click to View Justification Breakdown) */}
         {activePortal === 'creator' && onOpenScoreJustification && (
@@ -102,9 +114,9 @@ export function TopBar({
       <div className="flex items-center bg-[#09090b] p-1 rounded-lg border border-[#27272a]">
         <button
           onClick={() => setActivePortal('creator')}
-          className={`px-3 py-1 rounded text-xs font-medium transition-colors cursor-pointer ${
+          className={`px-3 py-1 rounded text-xs font-semibold transition-all cursor-pointer ${
             activePortal === 'creator'
-              ? 'bg-[#e11d48] text-white shadow-sm'
+              ? 'bg-[#e11d48] text-white shadow-md shadow-[#e11d48]/25'
               : 'text-[#a1a1aa] hover:text-[#fafafa]'
           }`}
         >
@@ -112,9 +124,9 @@ export function TopBar({
         </button>
         <button
           onClick={() => setActivePortal('brand')}
-          className={`px-3 py-1 rounded text-xs font-medium transition-colors cursor-pointer ${
+          className={`px-3 py-1 rounded text-xs font-semibold transition-all cursor-pointer ${
             activePortal === 'brand'
-              ? 'bg-[#3b82f6] text-white shadow-sm'
+              ? 'bg-[#1db954] text-black shadow-md shadow-[#1db954]/30'
               : 'text-[#a1a1aa] hover:text-[#fafafa]'
           }`}
         >
@@ -193,7 +205,7 @@ export function TopBar({
           <div className="flex items-center space-x-1.5 bg-[#09090b] border border-[#27272a] px-2.5 py-1 rounded-lg">
             <Coins size={14} className="text-[#e11d48]" />
             <span className="text-xs font-medium text-[#fafafa] tabular-nums">
-              {creatorCredits} <span className="hidden sm:inline text-[11px] text-[#71717a]">Creator Credits</span>
+              {creatorCredits} <span className="hidden sm:inline text-[11px] text-[#71717a]">Credits Remaining</span>
             </span>
             <button
               onClick={() => handleRefillClick('creator')}
@@ -205,14 +217,14 @@ export function TopBar({
           </div>
         ) : activePortal === 'brand' ? (
           <div className="flex items-center space-x-1.5 bg-[#09090b] border border-[#27272a] px-2.5 py-1 rounded-lg">
-            <Coins size={14} className="text-[#3b82f6]" />
+            <Coins size={14} className="text-[#1ed760]" />
             <span className="text-xs font-medium text-[#fafafa] tabular-nums">
-              {brandCredits} <span className="hidden sm:inline text-[11px] text-[#3b82f6]">Brand Credits</span>
+              {brandCredits} <span className="hidden sm:inline text-[11px] text-[#1ed760]/80">Credits Remaining</span>
             </span>
             <button
               onClick={() => handleRefillClick('brand')}
               title="Top-up Brand Credits with Stripe Sandbox"
-              className="ml-1 text-[#a1a1aa] hover:text-[#3b82f6] transition-colors p-0.5 cursor-pointer"
+              className="ml-1 text-[#a1a1aa] hover:text-[#1ed760] transition-colors p-0.5 cursor-pointer"
             >
               <RefreshCw size={12} />
             </button>
@@ -237,7 +249,7 @@ export function TopBar({
                 </p>
                 <span className={`text-[9px] px-1 py-0.2 rounded font-semibold uppercase tracking-wider ${
                   userRole === 'brand'
-                    ? 'bg-[#3b82f6]/20 text-[#3b82f6] border border-[#3b82f6]/30'
+                    ? 'bg-[#1db954]/20 text-[#1ed760] border border-[#1db954]/40'
                     : 'bg-[#e11d48]/20 text-[#e11d48] border border-[#e11d48]/30'
                 }`}>
                   {userRole === 'brand' ? 'Business' : 'Creator'}
@@ -275,14 +287,14 @@ export function TopBar({
                 <div className="flex items-center justify-between text-[11px]">
                   <span className="text-[#71717a] flex items-center space-x-1">
                     <Coins size={11} className="text-[#e11d48]" />
-                    <span>Creator Credits</span>
+                    <span>Creator Credits Remaining</span>
                   </span>
                   <span className="font-bold text-[#fafafa] tabular-nums">{creatorCredits}</span>
                 </div>
                 <div className="flex items-center justify-between text-[11px]">
                   <span className="text-[#71717a] flex items-center space-x-1">
                     <Coins size={11} className="text-[#3b82f6]" />
-                    <span>Brand Credits</span>
+                    <span>Brand Credits Remaining</span>
                   </span>
                   <span className="font-bold text-[#3b82f6] tabular-nums">{brandCredits}</span>
                 </div>

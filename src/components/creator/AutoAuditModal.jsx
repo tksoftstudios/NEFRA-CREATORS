@@ -11,7 +11,8 @@ import {
   TrendingUp, 
   ArrowRight,
   Zap,
-  Globe2
+  Globe2,
+  Check
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { auditChannelWithGemini } from '../../packages/ai/geminiClient';
@@ -173,7 +174,7 @@ export function AutoAuditModal({
                         ? 'bg-[#e11d48] text-white animate-pulse' 
                         : 'bg-[#18181b] text-[#71717a]'
                   }`}>
-                    {isDone ? '✓' : stepNum}
+                    {isDone ? <Check size={11} className="text-white" /> : stepNum}
                   </div>
                   <div>
                     <p className="font-semibold">{st.title}</p>

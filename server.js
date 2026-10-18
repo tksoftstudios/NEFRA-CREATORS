@@ -14,7 +14,8 @@ app.use(cors({
   credentials: true
 }));
 
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Health Check
 app.get('/api/health', (req, res) => {
@@ -87,6 +88,129 @@ app.post('/api/stripe/topup', async (req, res) => {
     return res.json(result);
   } catch (err) {
     return res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+// Cloud Firestore Credits Balance Endpoint
+app.get('/api/credits', async (req, res) => {
+  try {
+    const { getFirestoreDb } = await import('./src/server/apiHandler.js');
+    const db = getFirestoreDb();
+    if (!db) return res.status(503).json({ success: false, error: 'Cloud Firestore is not initialized' });
+    const { doc, getDoc } = await import('firebase/firestore');
+
+    const userId = req.query.userId || 'creator_01';
+    const role = req.query.role || 'creator';
+    const col = role === 'brand' ? 'brands' : 'creators';
+
+    const docSnap = await getDoc(doc(db, col, userId));
+    const data = docSnap.exists() ? docSnap.data() : {};
+
+    return res.json({
+      success: true,
+      userId,
+      role,
+      credits: typeof data.credits === 'number' ? data.credits : 50,
+      brandCredits: typeof data.brandCredits === 'number' ? data.brandCredits : (data.credits ?? 250)
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Cloud Firestore Credits Deduct Endpoint
+app.post('/api/credits/deduct', async (req, res) => {
+  try {
+    const { getFirestoreDb } = await import('./src/server/apiHandler.js');
+    const db = getFirestoreDb();
+    if (!db) return res.status(503).json({ success: false, error: 'Cloud Firestore is not initialized' });
+    const { doc, getDoc, setDoc, addDoc, collection } = await import('firebase/firestore');
+
+    const { userId = 'creator_01', role = 'creator', amount = 1, description = 'Feature usage' } = req.body;
+    const col = role === 'brand' ? 'brands' : 'creators';
+    const docRef = doc(db, col, userId);
+
+    const docSnap = await getDoc(docRef);
+    const data = docSnap.exists() ? docSnap.data() : {};
+    const currentBalance = role === 'brand'
+      ? (typeof data.brandCredits === 'number' ? data.brandCredits : 250)
+      : (typeof data.credits === 'number' ? data.credits : 50);
+
+    const remainingCredits = Math.max(0, currentBalance - Number(amount));
+    const payload = role === 'brand'
+      ? { brandCredits: remainingCredits, credits: remainingCredits, updatedAt: new Date().toISOString() }
+      : { credits: remainingCredits, creatorCredits: remainingCredits, updatedAt: new Date().toISOString() };
+
+    await setDoc(docRef, payload, { merge: true });
+
+    // Record in Firestore transactions collection
+    await addDoc(collection(db, 'transactions'), {
+      userId,
+      role,
+      amount: -Number(amount),
+      description,
+      remainingCredits,
+      timestamp: Date.now(),
+      createdAt: new Date().toISOString()
+    });
+
+    return res.json({
+      success: true,
+      remainingCredits,
+      deducted: Number(amount)
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Cloud Firestore Credits Refill Endpoint
+app.post('/api/credits/refill', async (req, res) => {
+  try {
+    const { getFirestoreDb } = await import('./src/server/apiHandler.js');
+    const db = getFirestoreDb();
+    if (!db) return res.status(503).json({ success: false, error: 'Cloud Firestore is not initialized' });
+    const { doc, getDoc, setDoc, addDoc, collection } = await import('firebase/firestore');
+
+    const { userId = 'creator_01', role = 'creator', amount = 50, receipt = null } = req.body;
+    const col = role === 'brand' ? 'brands' : 'creators';
+    const docRef = doc(db, col, userId);
+
+    const docSnap = await getDoc(docRef);
+    const data = docSnap.exists() ? docSnap.data() : {};
+    const currentBalance = role === 'brand'
+      ? (typeof data.brandCredits === 'number' ? data.brandCredits : 250)
+      : (typeof data.credits === 'number' ? data.credits : 50);
+
+    const remainingCredits = currentBalance + Number(amount);
+    const payload = role === 'brand'
+      ? { brandCredits: remainingCredits, credits: remainingCredits, updatedAt: new Date().toISOString() }
+      : { credits: remainingCredits, creatorCredits: remainingCredits, updatedAt: new Date().toISOString() };
+
+    await setDoc(docRef, payload, { merge: true });
+
+    const txDesc = receipt?.paymentIntentId
+      ? `Stripe Sandbox Top-up (+${amount} credits • Tx: ${receipt.paymentIntentId.slice(-8)})`
+      : `Credit refill bonus (+${amount} credits)`;
+
+    await addDoc(collection(db, 'transactions'), {
+      userId,
+      role,
+      amount: Number(amount),
+      description: txDesc,
+      remainingCredits,
+      receipt,
+      timestamp: Date.now(),
+      createdAt: new Date().toISOString()
+    });
+
+    return res.json({
+      success: true,
+      remainingCredits,
+      added: Number(amount)
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
   }
 });
 

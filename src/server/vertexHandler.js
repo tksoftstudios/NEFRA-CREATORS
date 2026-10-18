@@ -53,7 +53,7 @@ function getServiceAccount() {
  * Obtains an OAuth2 Access Token for Google Cloud Vertex AI
  * via standard Google Service Account JWT bearer flow.
  */
-async function getVertexAccessToken() {
+export async function getVertexAccessToken() {
   const now = Math.floor(Date.now() / 1000);
   if (cachedAccessToken && tokenExpiry > now + 60) {
     return cachedAccessToken;

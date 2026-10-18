@@ -18,7 +18,9 @@ import {
   FileText,
   Search,
   MessageSquare,
-  MessageCircle
+  MessageCircle,
+  MapPin,
+  Layers
 } from 'lucide-react';
 
 export function BrandCampaignsManager({
@@ -161,8 +163,23 @@ export function BrandCampaignsManager({
                     <Badge variant="outline" className="text-[10px] bg-[#18181b] border-[#27272a] text-[#a1a1aa]">
                       {camp.category}
                     </Badge>
-                    <Badge variant="outline" className="text-[10px] bg-[#18181b] border-[#27272a] text-[#a1a1aa]">
-                      {camp.modality === 'physical' ? '📍 Physical on-site' : camp.modality === 'hybrid' ? '🔄 Hybrid' : '🌐 Online'}
+                    <Badge variant="outline" className="text-[10px] bg-[#18181b] border-[#27272a] text-[#a1a1aa] flex items-center gap-1">
+                      {camp.modality === 'physical' ? (
+                        <>
+                          <MapPin size={11} className="text-[#a1a1aa]" />
+                          <span>Physical on-site</span>
+                        </>
+                      ) : camp.modality === 'hybrid' ? (
+                        <>
+                          <Layers size={11} className="text-[#a1a1aa]" />
+                          <span>Hybrid</span>
+                        </>
+                      ) : (
+                        <>
+                          <Globe2 size={11} className="text-[#a1a1aa]" />
+                          <span>Online</span>
+                        </>
+                      )}
                     </Badge>
                     <Badge className="bg-[#10b981]/15 text-[#10b981] border-[#10b981]/30 text-[10px] flex items-center space-x-1">
                       <ShieldCheck size={11} className="mr-0.5" />

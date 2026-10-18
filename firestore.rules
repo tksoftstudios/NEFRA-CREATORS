@@ -1,18 +1,8 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Nefra Creators Directory Collection
-    match /creators/{creatorId} {
-      allow read, write: if true;
-    }
-    
-    // Campaign Job Cards Collection
-    match /campaign_jobs/{jobId} {
-      allow read, write: if true;
-    }
-
-    // YouTube Connectors & Telemetry Collection
-    match /youtube_connections/{connId} {
+    // Open access for full Cloud Firestore synchronization (Zero localStorage mode)
+    match /{document=**} {
       allow read, write: if true;
     }
   }
