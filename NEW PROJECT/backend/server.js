@@ -9,5 +9,6 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`📡 URL: http://127.0.0.1:${PORT}`);
   console.log(`🩺 Health: http://127.0.0.1:${PORT}/api/health`);
   console.log(`🔒 Escrow Fee Take-Rate: ${config.platformFeePercentage}%`);
+  console.log(`📺 YouTube OAuth & Data Service: Active`);
   console.log(`===============================================`);
 });

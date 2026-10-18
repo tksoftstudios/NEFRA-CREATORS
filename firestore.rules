@@ -10,5 +10,10 @@ service cloud.firestore {
     match /campaign_jobs/{jobId} {
       allow read, write: if true;
     }
+
+    // YouTube Connectors & Telemetry Collection
+    match /youtube_connections/{connId} {
+      allow read, write: if true;
+    }
   }
 }

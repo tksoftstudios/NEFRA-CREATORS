@@ -26,3 +26,7 @@ dist-ssr
 *.sln
 *.sw?
 cursorcam-output/
+service-account.json
+nefra-creators-x-*.json
+gcp-credentials.json
+vertex-key.json
