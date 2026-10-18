@@ -305,10 +305,10 @@ export function DeliverableModal({
         <div className="p-3 bg-[#18181b] rounded-lg border border-[#27272a] text-xs space-y-1.5">
           <div className="flex items-center gap-1.5 text-[#3b82f6] font-semibold text-[11px]">
             <ShieldCheck size={14} />
-            Google Cloud Content Moderation & Brand Safety Engine
+            NEFRA Content Moderation & Brand Safety Engine
           </div>
           <p className="text-[11px] text-[#a1a1aa] leading-relaxed">
-            Upon submission, Google Cloud Vertex AI automatically evaluates your deliverables across Google’s 5 official Harm Categories (harassment, hate speech, explicit content, violence, dangerous acts) and generates an official Google Content Moderation Score (0-100) for the brand review dashboard.
+            Upon submission, the NEFRA Content Moderation Engine automatically evaluates your deliverables across standard safety categories (harassment, hate speech, explicit content, violence, dangerous acts) and generates an official Content Moderation Score (0-100) for the brand review dashboard.
           </p>
         </div>
 
@@ -318,13 +318,13 @@ export function DeliverableModal({
             <div className="flex items-center gap-2 text-[#38bdf8]">
               <Loader2 size={14} className="animate-spin" />
               <span className="font-medium">
-                {submissionStep === 'moderating' && 'Running Google Cloud Content Moderation & Brand Safety scan...'}
+                {submissionStep === 'moderating' && 'Running NEFRA Content Moderation & Brand Safety scan...'}
                 {submissionStep === 'done' && 'Moderation passed! Finalizing escrow transition...'}
               </span>
             </div>
             {moderationPreview && (
               <div className="text-[11px] text-[#94a3b8] flex items-center justify-between">
-                <span>Google Moderation Score: <strong className="text-[#38bdf8]">{moderationPreview.overallScore}/100</strong></span>
+                <span>Content Moderation Score: <strong className="text-[#38bdf8]">{moderationPreview.overallScore}/100</strong></span>
                 <span className="text-[#10b981] font-medium">{moderationPreview.safetyGrade}</span>
               </div>
             )}

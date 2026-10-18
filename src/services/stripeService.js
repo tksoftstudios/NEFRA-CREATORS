@@ -2,6 +2,7 @@
  * Stripe Sandbox Frontend Service
  * Connects Creator Credit Wallet to Stripe REST API.
  */
+import { getApiUrl } from '../config/apiClient.js';
 
 export const CREATOR_CREDIT_PACKAGES = [
   {
@@ -74,7 +75,7 @@ export const CREDIT_PACKAGES = CREATOR_CREDIT_PACKAGES;
 
 export async function fetchStripeConfig() {
   try {
-    const res = await fetch('/api/stripe/config');
+    const res = await fetch(getApiUrl('/api/stripe/config'));
     if (res.ok) {
       return await res.json();
     }
@@ -90,7 +91,7 @@ export async function fetchStripeConfig() {
 export async function topupCreditsWithStripe({ amountCents, credits, paymentMethod = 'pm_card_visa' }) {
   console.log(`💳 [Stripe Client] Requesting top-up of +${credits} Credits ($${(amountCents / 100).toFixed(2)} USD)...`);
   
-  const res = await fetch('/api/stripe/topup', {
+  const res = await fetch(getApiUrl('/api/stripe/topup'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({

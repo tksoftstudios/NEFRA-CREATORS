@@ -126,10 +126,10 @@ export function BidModal({
               onClick={handleDraftWithAI}
               disabled={isDraftingAI}
               className="text-xs text-[#3b82f6] hover:text-[#2563eb] font-medium flex items-center space-x-1 cursor-pointer disabled:opacity-50"
-              title={`Draft proposal with Vertex AI (5 credits • ${credits} remaining)`}
+              title={`Draft proposal with AI (5 credits • ${credits} remaining)`}
             >
               <Sparkles size={12} />
-              <span>{isDraftingAI ? "Drafting with Vertex AI..." : `Draft with Vertex AI (5 credits • ${credits} remaining)`}</span>
+              <span>{isDraftingAI ? "Drafting with AI..." : `Draft with AI (5 credits • ${credits} remaining)`}</span>
             </button>
           </div>
 

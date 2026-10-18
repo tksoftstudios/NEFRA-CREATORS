@@ -115,7 +115,7 @@ export function AICampaignBuilder({
             AI campaign job card builder
           </h1>
           <p className="text-xs text-[#a1a1aa] mt-1">
-            Type your project goals in plain language. Google Cloud Vertex AI converts it into a structured, agency-grade job card.
+            Type your project goals in plain language. NEFRA AI converts it into a structured, agency-grade job card.
           </p>
         </div>
         <Badge className="bg-amber-500/15 text-amber-400 border-amber-500/30 text-xs flex items-center space-x-1.5 self-start sm:self-auto px-3 py-1">
@@ -132,7 +132,7 @@ export function AICampaignBuilder({
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             rows={3}
-            placeholder="e.g. Looking for 2 tech creators to do an in-depth review of our new Vertex AI developer tool, budget $2,500..."
+            placeholder="e.g. Looking for 2 tech creators to do an in-depth review of our new SaaS developer platform, budget $2,500..."
           />
         </div>
 
@@ -166,7 +166,7 @@ export function AICampaignBuilder({
             title={`Synthesize Job Card (15 credits • ${brandCredits} remaining)`}
           >
             <Sparkles size={14} />
-            <span>{isGenerating ? "Synthesizing with Vertex AI..." : `Synthesize with Vertex AI (15 credits • ${brandCredits} remaining)`}</span>
+            <span>{isGenerating ? "Synthesizing with AI..." : `Synthesize with AI (15 credits • ${brandCredits} remaining)`}</span>
           </Button>
         </div>
       </Card>
@@ -177,7 +177,7 @@ export function AICampaignBuilder({
           <Card className="space-y-4 border-[#3b82f6]/40">
             <div className="flex items-center justify-between border-b border-[#27272a] pb-3">
               <div className="flex items-center space-x-2">
-                <Badge className="bg-[#3b82f6]/15 text-[#3b82f6] border-[#3b82f6]/30 text-[10px]">Synthesized by Vertex AI</Badge>
+                <Badge className="bg-[#3b82f6]/15 text-[#3b82f6] border-[#3b82f6]/30 text-[10px]">Synthesized by NEFRA AI</Badge>
                 <span className="text-xs text-[#a1a1aa]">Review &amp; customize before publishing</span>
               </div>
               <Badge variant="outline" className="text-[10px]">100% Escrow Backed</Badge>

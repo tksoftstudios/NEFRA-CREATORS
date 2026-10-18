@@ -68,7 +68,7 @@ export function AdminOverview({
               <h3 className="text-sm font-semibold text-[#fafafa]">Creator Verification Queue</h3>
             </div>
             <p className="text-xs text-[#a1a1aa] mt-2">
-              Review incoming YouTube creator registrations, inspect Gemini 3-video audits, and approve directory listings.
+              Review incoming YouTube creator registrations, inspect multimodal 3-video audits, and approve directory listings.
             </p>
           </div>
           <div className="pt-3 border-t border-[#27272a] mt-4">

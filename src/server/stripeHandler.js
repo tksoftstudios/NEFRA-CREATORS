@@ -1,28 +1,48 @@
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 
-/**
- * Stripe Sandbox Backend Handler
- * Processes test payments for Creator Credit top-ups using Stripe REST API.
- */
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Default Sandbox Credentials for NEFRA Hackathon Evaluation
+const DEFAULT_SANDBOX_CONFIG = {
+  secretKey: 'rkcs_test_51URWsCPaczSuhiYB23CGsraw0PWD4wDCfmy60OFZbzB5CcW1r0nINYeKXiPYfi9njVtbF2KOut1gCcHAaHTngm00ggxz8j4r',
+  publishableKey: 'pk_test_51URWsCPaczSuhiYBJOQbh1INNdKk0q4lOqaGTcOfQRNq6eG72L8gjFXBGbGX56GTnUWjI0Ug6SUofYg3k8VLbefY00S7VA1gIz',
+  accountId: 'acct_1URWsCPaczSuhiYB'
+};
 
 function getStripeCredentials() {
   let secretKey = process.env.STRIPE_SECRET_KEY || '';
-  let publishableKey = process.env.VITE_STRIPE_PUBLISHABLE_KEY || '';
+  let publishableKey = process.env.VITE_STRIPE_PUBLISHABLE_KEY || process.env.STRIPE_PUBLISHABLE_KEY || '';
   let accountId = process.env.STRIPE_ACCOUNT_ID || '';
 
-  // Fallback to stripe.json in root if present
-  try {
-    const jsonPath = path.resolve(process.cwd(), 'stripe.json');
-    if (fs.existsSync(jsonPath)) {
-      const data = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
-      if (!secretKey && data.secret_key) secretKey = data.secret_key;
-      if (!publishableKey && data.publishable_key) publishableKey = data.publishable_key;
-      if (!accountId && data.account_id) accountId = data.account_id;
+  const candidatePaths = [
+    path.resolve(process.cwd(), 'stripe.json'),
+    path.resolve(process.cwd(), 'functions', 'stripe.json'),
+    path.resolve(__dirname, 'stripe.json'),
+    path.resolve(__dirname, '..', 'stripe.json'),
+    path.resolve(__dirname, '..', '..', 'stripe.json')
+  ];
+
+  for (const jsonPath of candidatePaths) {
+    try {
+      if (fs.existsSync(jsonPath)) {
+        const data = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
+        if (!secretKey && data.secret_key) secretKey = data.secret_key;
+        if (!publishableKey && data.publishable_key) publishableKey = data.publishable_key;
+        if (!accountId && data.account_id) accountId = data.account_id;
+        if (secretKey) break;
+      }
+    } catch (e) {
+      // ignore
     }
-  } catch (e) {
-    console.warn('[Stripe Handler] Notice reading stripe.json:', e.message);
   }
+
+  // Guaranteed fallback to default sandbox credentials
+  if (!secretKey) secretKey = DEFAULT_SANDBOX_CONFIG.secretKey;
+  if (!publishableKey) publishableKey = DEFAULT_SANDBOX_CONFIG.publishableKey;
+  if (!accountId) accountId = DEFAULT_SANDBOX_CONFIG.accountId;
 
   return { secretKey, publishableKey, accountId };
 }

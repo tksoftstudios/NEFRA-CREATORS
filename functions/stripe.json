@@ -1,0 +1,7 @@
+{
+  "secret_key": "rkcs_test_51URWsCPaczSuhiYB23CGsraw0PWD4wDCfmy60OFZbzB5CcW1r0nINYeKXiPYfi9njVtbF2KOut1gCcHAaHTngm00ggxz8j4r",
+  "publishable_key": "pk_test_51URWsCPaczSuhiYBJOQbh1INNdKk0q4lOqaGTcOfQRNq6eG72L8gjFXBGbGX56GTnUWjI0Ug6SUofYg3k8VLbefY00S7VA1gIz",
+  "claim_url": "https://dashboard.stripe.com/onboard_sandbox/YWNjdF8xVVJXc0NQYWN6U3VoaVlCLDE3OTI4NDYzMzkv100ZFGndiHa",
+  "account_id": "acct_1URWsCPaczSuhiYB",
+  "expires_at": "2026-10-24"
+}

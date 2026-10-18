@@ -256,7 +256,7 @@ export function BrandCampaignsManager({
                     size="sm"
                     onClick={() => setAiMatchCampaign(camp)}
                     className="border-[#27272a] text-xs text-[#fafafa] hover:border-[#e11d48] hover:bg-[#e11d48]/10 cursor-pointer space-x-1.5"
-                    title="Run Google Vertex AI Matchmaker for this gig"
+                    title="Run NEFRA Matchmaker for this gig"
                   >
                     <Sparkles size={13} className="text-[#e11d48]" />
                     <span>AI Creator Match</span>

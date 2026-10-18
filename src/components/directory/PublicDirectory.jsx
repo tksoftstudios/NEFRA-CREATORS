@@ -51,7 +51,7 @@ export function PublicDirectory({
             Verified YouTube creator directory
           </h1>
           <p className="text-xs text-[#a1a1aa] mt-1">
-            Top ranked creators evaluated by Gemini 3-video multimodal analysis. Pre-funded escrow protection on every deal.
+            Top ranked creators evaluated by NEFRA multimodal video analysis. Pre-funded escrow protection on every deal.
           </p>
         </div>
 

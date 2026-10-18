@@ -47,6 +47,12 @@ import {
   generateYouTubeTextPost
 } from '../../packages/ai/geminiClient';
 import { uploadGeneratedArtworkToFirebase } from '../../services/storageService';
+import { 
+  saveAIPostToFirestore, 
+  deleteAIPostFromFirestore, 
+  subscribeToAIPosts, 
+  seedInitialPostsToFirestore 
+} from '../../services/aiContentService';
 
 function YoutubeIcon({ className = "w-4 h-4", size, ...props }) {
   const s = size ? `${size}px` : undefined;
@@ -125,15 +131,16 @@ export function AIContentCreator({
   // Navigation viewMode: 'list' (Opening screen) | 'wizard' (Guided creation) | 'post_detail' (Final review & sharing)
   const [viewMode, setViewMode] = useState('list');
 
-  // Posts State (Persisted in user-partitioned storage)
+  const activeUid = currentUser?.uid || (typeof window !== 'undefined' ? localStorage.getItem('nefra_active_uid') : null) || 'brand_01';
+
+  // Posts State (Persisted in user-partitioned storage and synced live with Cloud Firestore)
   const getStorageKey = () => {
-    const uid = (typeof window !== 'undefined' ? localStorage.getItem('nefra_active_uid') : null) || 'guest';
-    return `nefra_created_social_posts_${uid}`;
+    return `nefra_created_social_posts_${activeUid}`;
   };
 
   const [createdPosts, setCreatedPosts] = useState(() => {
     try {
-      const key = getStorageKey();
+      const key = `nefra_created_social_posts_${activeUid}`;
       const saved = localStorage.getItem(key);
       if (saved) {
         const parsed = JSON.parse(saved);
@@ -143,13 +150,32 @@ export function AIContentCreator({
     return DEFAULT_INITIAL_POSTS;
   });
 
-  // Sync to user-partitioned storage
+  // 1. Sync to local user-partitioned storage
   useEffect(() => {
     try {
       const key = getStorageKey();
       localStorage.setItem(key, JSON.stringify(createdPosts));
     } catch (e) {}
-  }, [createdPosts]);
+  }, [createdPosts, activeUid]);
+
+  // 2. Real-time Live Synchronization with Cloud Firestore (Multi-device, Multi-browser)
+  useEffect(() => {
+    // Seed initial posts to Firestore if collection has zero documents
+    seedInitialPostsToFirestore(DEFAULT_INITIAL_POSTS, activeUid);
+
+    // Subscribe to live Firestore updates
+    const unsubscribe = subscribeToAIPosts(activeUid, (remotePosts) => {
+      if (Array.isArray(remotePosts) && remotePosts.length > 0) {
+        setCreatedPosts(remotePosts);
+        try {
+          const key = getStorageKey();
+          localStorage.setItem(key, JSON.stringify(remotePosts));
+        } catch (e) {}
+      }
+    });
+
+    return () => unsubscribe();
+  }, [activeUid]);
 
   // Active post selected for viewing in 'post_detail'
   const [activePost, setActivePost] = useState(null);
@@ -160,7 +186,7 @@ export function AIContentCreator({
 
   // Guided Wizard State
   const [wizardStep, setWizardStep] = useState(1); // 1: Output Format, 2: Brand Assets, 3: Requirements & Prompt, 4: Generating
-  const [wizardFormat, setWizardFormat] = useState('image_text'); // 'text' | 'image' | 'image_text'
+  const [wizardFormat, setWizardFormat] = useState('image_text'); // 'image_text' | 'text' | 'image' (video disabled)
   const [wizardTopic, setWizardTopic] = useState('');
   const [wizardRequirement, setWizardRequirement] = useState('');
   const [wizardTone, setWizardTone] = useState('Exciting Launch');
@@ -352,6 +378,7 @@ export function AIContentCreator({
       };
 
       setCreatedPosts(prev => prev.map(p => p.id === updatedPost.id ? updatedPost : p));
+      saveAIPostToFirestore(updatedPost, activeUid);
       setActivePost(updatedPost);
       setIsRedesignModalOpen(false);
       confetti({ particleCount: 70, spread: 80, origin: { y: 0.6 } });
@@ -372,6 +399,7 @@ export function AIContentCreator({
       updatedAt: new Date().toISOString()
     };
     setCreatedPosts(prev => prev.map(p => p.id === updatedPost.id ? updatedPost : p));
+    saveAIPostToFirestore(updatedPost, activeUid);
     setActivePost(updatedPost);
   };
 
@@ -398,6 +426,11 @@ export function AIContentCreator({
       return;
     }
 
+    if (wizardFormat === 'video') {
+      alert('Video generation is currently disabled. Please select Image + Text Package or YouTube Community Post.');
+      return;
+    }
+
     if (typeof brandCredits === 'number' && brandCredits < 20) {
       if (onOpenTopup) onOpenTopup();
       else alert('Insufficient Brand Credits. You need at least 20 Brand Credits.');
@@ -409,7 +442,7 @@ export function AIContentCreator({
 
     try {
       if (onDeductBrandCredits) {
-        onDeductBrandCredits(20, `AI Content Creator - ${wizardFormat === 'image_text' ? 'Image + Text' : wizardFormat === 'image' ? 'Nano Banana Image' : 'Gemini Text Post'}`);
+        onDeductBrandCredits(20, `AI Content Creator - ${wizardFormat === 'image_text' ? 'Image + Text' : wizardFormat === 'image' ? 'Visual Studio Image' : 'AI Community Post'}`);
       }
 
       const brandTitle = userProfile?.companyName || 'My Brand';
@@ -468,6 +501,7 @@ export function AIContentCreator({
         };
 
         setCreatedPosts(prev => [newPost, ...prev]);
+        saveAIPostToFirestore(newPost, activeUid);
         setActivePost(newPost);
         setDetailEditText(newPost.postText);
         confetti({ particleCount: 60, spread: 70, origin: { y: 0.6 } });
@@ -510,6 +544,7 @@ export function AIContentCreator({
         };
 
         setCreatedPosts(prev => [newPost, ...prev]);
+        saveAIPostToFirestore(newPost, activeUid);
         setActivePost(newPost);
         confetti({ particleCount: 60, spread: 70, origin: { y: 0.6 } });
         setViewMode('post_detail');
@@ -537,6 +572,7 @@ export function AIContentCreator({
         };
 
         setCreatedPosts(prev => [newPost, ...prev]);
+        saveAIPostToFirestore(newPost, activeUid);
         setActivePost(newPost);
         setDetailEditText(newPost.postText);
         confetti({ particleCount: 60, spread: 70, origin: { y: 0.6 } });
@@ -565,6 +601,7 @@ export function AIContentCreator({
     if (e) e.stopPropagation();
     if (confirm('Are you sure you want to delete this created post?')) {
       setCreatedPosts(prev => prev.filter(p => p.id !== postId));
+      deleteAIPostFromFirestore(postId);
       if (activePost?.id === postId) {
         setViewMode('list');
         setActivePost(null);
@@ -586,7 +623,7 @@ export function AIContentCreator({
     if (!post?.imageUrl) return;
     const baseName = post.title.toLowerCase().replace(/[^a-z0-9]/g, '_') || 'youtube_post';
     const ext = format === 'jpg' || format === 'jpeg' ? 'jpg' : 'png';
-    const fileName = `${baseName}_nano_banana.${ext}`;
+    const fileName = `${baseName}_nefra_visual.${ext}`;
 
     if (post.imageUrl.startsWith('data:image/')) {
       const link = document.createElement('a');
@@ -645,11 +682,15 @@ export function AIContentCreator({
               </Badge>
               <Badge className="text-[10px] bg-yellow-500/10 border-yellow-500/30 text-yellow-400 font-semibold flex items-center gap-1">
                 <Sparkles size={11} className="text-yellow-400" />
-                <span>Vertex AI Nano Banana</span>
+                <span>NEFRA Visual Studio</span>
+              </Badge>
+              <Badge className="text-[10px] bg-emerald-500/10 border-emerald-500/30 text-emerald-400 font-semibold flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span>Cloud Synced</span>
               </Badge>
             </div>
             <p className="text-xs text-[#a1a1aa] mt-0.5">
-              Manage your created YouTube Community posts, or synthesize fresh images and high-converting copy with Google AI.
+              Manage your created YouTube Community posts, or synthesize fresh images and high-converting copy with NEFRA AI.
             </p>
           </div>
 
@@ -768,10 +809,10 @@ export function AIContentCreator({
                         {isImageText ? <Layers size={11} /> : isImageOnly ? <ImageIcon size={11} /> : <FileText size={11} />}
                         <span>
                           {isImageText 
-                            ? 'Image + Text (Nano Banana + Gemini)' 
+                            ? 'Image + Text (AI Studio)' 
                             : isImageOnly 
-                            ? 'Image Only (Nano Banana)' 
-                            : 'Text Only (Gemini)'}
+                            ? 'Image Only (Visual Studio)' 
+                            : 'Text Only (AI Copy)'}
                         </span>
                       </span>
 
@@ -849,7 +890,7 @@ export function AIContentCreator({
                           <button
                             type="button"
                             onClick={() => handleOpenRedesignModal(post)}
-                            title="Request AI Redesign with Nano Banana"
+                            title="Request AI Redesign with Visual Studio"
                             className="p-1.5 rounded hover:bg-[#18181b] text-yellow-400 hover:text-white transition-colors cursor-pointer"
                           >
                             <RotateCcw size={13} />
@@ -910,7 +951,7 @@ export function AIContentCreator({
               <p className="text-xs text-[#a1a1aa] max-w-sm mx-auto">
                 {searchQuery 
                   ? 'No posts matched your search criteria. Try a different query.'
-                  : 'Synthesize your first YouTube Community post or standalone image with Google Vertex AI.'}
+                  : 'Synthesize your first YouTube Community post or standalone image with NEFRA AI Studio.'}
               </p>
             </div>
             <Button
@@ -977,15 +1018,59 @@ export function AIContentCreator({
           <Card className="p-6 bg-[#0e0e11] border-[#27272a] space-y-6">
             <div className="space-y-1">
               <h2 className="text-lg font-bold text-[#fafafa] flex items-center gap-2">
-                <span>1. What kind of YouTube post do you want?</span>
+                <span>1. Select Content Format</span>
               </h2>
               <p className="text-xs text-[#a1a1aa]">
-                Select your output type. We support standalone AI images, viral Community text posts, or a complete image + text bundle.
+                Choose your preferred content format. Image + Text Package and Community Posts are enabled. Video generation is currently disabled.
               </p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-              {/* Option 1: Image + Text (Allowed!) */}
+              {/* Option 1: Community Post (Active & Allowed) */}
+              <div
+                onClick={() => setWizardFormat('text')}
+                className={`p-4 rounded-xl border transition-all cursor-pointer space-y-2.5 relative ${
+                  wizardFormat === 'text'
+                    ? 'bg-[#18181b] border-[#10b981] ring-1 ring-[#10b981]/40 shadow-lg'
+                    : 'bg-[#121215] border-[#27272a] hover:border-[#3f3f46]'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="p-2 rounded-lg bg-[#10b981]/10 text-[#10b981]">
+                    <FileText size={20} />
+                  </div>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-[#10b981]/15 text-[#10b981] border border-[#10b981]/30 flex items-center gap-1">
+                    <CheckCircle2 size={11} />
+                    <span>Allowed • Active</span>
+                  </span>
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-[#fafafa]">YouTube Community Post</h3>
+                  <p className="text-xs text-[#a1a1aa] mt-1 leading-relaxed">
+                    High-converting YouTube Community tab post with compelling hook, clear value points, call to action, and discovery hashtags.
+                  </p>
+                </div>
+              </div>
+
+              {/* Option 2: Video Generation (Disabled) */}
+              <div className="p-4 rounded-xl border border-[#27272a] bg-[#09090b]/60 opacity-50 space-y-2.5 cursor-not-allowed select-none relative">
+                <div className="flex items-center justify-between">
+                  <div className="p-2 rounded-lg bg-[#27272a] text-[#71717a]">
+                    <VideoIcon size={20} />
+                  </div>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-[#27272a] text-[#a1a1aa] border border-[#3f3f46]">
+                    Disabled
+                  </span>
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-[#71717a]">AI Video Generation</h3>
+                  <p className="text-xs text-[#71717a] mt-1 leading-relaxed">
+                    Automated YouTube Shorts video clips and motion announcements (Video generation disabled).
+                  </p>
+                </div>
+              </div>
+
+              {/* Option 3: Image + Text Package (Allowed) */}
               <div
                 onClick={() => setWizardFormat('image_text')}
                 className={`p-4 rounded-xl border transition-all cursor-pointer space-y-2.5 relative ${
@@ -999,95 +1084,61 @@ export function AIContentCreator({
                     <Layers size={20} />
                   </div>
                   <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-[#10b981]/15 text-[#10b981] border border-[#10b981]/30 flex items-center gap-1">
-                    <Layers size={11} />
-                    <span>Nano Banana + Gemini</span>
+                    <CheckCircle2 size={11} />
+                    <span>Allowed • Active</span>
                   </span>
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-[#fafafa]">Image + Text</h3>
+                  <h3 className="text-sm font-bold text-[#fafafa]">Image + Text Package</h3>
                   <p className="text-xs text-[#a1a1aa] mt-1 leading-relaxed">
-                    Complete YouTube Community package: generates both a standalone AI image and tailored community copy & viral hashtags.
+                    Studio visual promotional graphic paired with high-converting YouTube Community post copy.
                   </p>
                 </div>
               </div>
 
-              {/* Option 2: Image Only (Allowed) */}
+              {/* Option 4: Image Only (Allowed) */}
               <div
                 onClick={() => setWizardFormat('image')}
                 className={`p-4 rounded-xl border transition-all cursor-pointer space-y-2.5 relative ${
                   wizardFormat === 'image'
-                    ? 'bg-[#18181b] border-yellow-400 ring-1 ring-yellow-400/40 shadow-lg'
+                    ? 'bg-[#18181b] border-[#10b981] ring-1 ring-[#10b981]/40 shadow-lg'
                     : 'bg-[#121215] border-[#27272a] hover:border-[#3f3f46]'
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <div className="p-2 rounded-lg bg-yellow-400/10 text-yellow-400">
+                  <div className="p-2 rounded-lg bg-[#10b981]/10 text-[#10b981]">
                     <ImageIcon size={20} />
                   </div>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-yellow-400/15 text-yellow-400 border border-yellow-400/30 flex items-center gap-1">
-                    <Sparkles size={11} />
-                    <span>Nano Banana</span>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-[#10b981]/15 text-[#10b981] border border-[#10b981]/30 flex items-center gap-1">
+                    <CheckCircle2 size={11} />
+                    <span>Allowed • Active</span>
                   </span>
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-[#fafafa]">Image Only</h3>
                   <p className="text-xs text-[#a1a1aa] mt-1 leading-relaxed">
-                    Pure AI promotional visual generated by Google Vertex AI Nano Banana referencing your logo and product screenshot.
-                  </p>
-                </div>
-              </div>
-
-              {/* Option 3: Text Only (Allowed) */}
-              <div
-                onClick={() => setWizardFormat('text')}
-                className={`p-4 rounded-xl border transition-all cursor-pointer space-y-2.5 relative ${
-                  wizardFormat === 'text'
-                    ? 'bg-[#18181b] border-[#38bdf8] ring-1 ring-[#38bdf8]/40 shadow-lg'
-                    : 'bg-[#121215] border-[#27272a] hover:border-[#3f3f46]'
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="p-2 rounded-lg bg-[#38bdf8]/10 text-[#38bdf8]">
-                    <FileText size={20} />
-                  </div>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-[#38bdf8]/15 text-[#38bdf8] border border-[#38bdf8]/30 flex items-center gap-1">
-                    <Zap size={11} />
-                    <span>Gemini 2.5 Flash</span>
-                  </span>
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-[#fafafa]">Text only ("Text post with hashtags")</h3>
-                  <p className="text-xs text-[#a1a1aa] mt-1 leading-relaxed">
-                    High-converting YouTube Community post with hook, clear value points, call to action, and viral hashtags.
-                  </p>
-                </div>
-              </div>
-
-              {/* Option 4: Video (Disabled / Coming Soon) */}
-              <div className="p-4 rounded-xl border border-[#27272a] bg-[#09090b]/60 opacity-60 space-y-2.5 cursor-not-allowed relative">
-                <div className="flex items-center justify-between">
-                  <div className="p-2 rounded-lg bg-[#27272a] text-[#71717a]">
-                    <VideoIcon size={20} />
-                  </div>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-[#27272a] text-[#a1a1aa]">
-                    Coming Soon
-                  </span>
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-[#71717a]">Video</h3>
-                  <p className="text-xs text-[#71717a] mt-1">
-                    Automated YouTube Shorts video clips and motion announcements for video tab publishing.
+                    Promotional visual poster synthesis with custom branding, aspect ratio, and typography.
                   </p>
                 </div>
               </div>
             </div>
 
-            <div className="flex items-center justify-end pt-3">
+            <div className="flex items-center justify-between pt-3">
+              <span className="text-xs text-[#71717a]">
+                Selected Format:{' '}
+                <strong className="text-[#10b981]">
+                  {wizardFormat === 'image_text'
+                    ? 'Image + Text Package'
+                    : wizardFormat === 'image'
+                    ? 'Image Only'
+                    : 'YouTube Community Post'}
+                </strong>
+              </span>
               <Button
-                onClick={() => setWizardStep(2)}
+                onClick={() => setWizardStep(wizardFormat === 'text' ? 3 : 2)}
                 className="bg-[#e11d48] hover:bg-[#be123c] text-white text-xs font-semibold space-x-1.5 cursor-pointer px-5"
               >
-                <span>Continue to Brand Assets</span>
+                <span>{wizardFormat === 'text' ? 'Continue to Post Requirements' : 'Continue to Brand Assets'}</span>
                 <ArrowRight size={14} />
               </Button>
             </div>
@@ -1386,7 +1437,7 @@ export function AIContentCreator({
             <div className="flex items-center justify-between pt-3 border-t border-[#27272a]">
               <Button
                 variant="outline"
-                onClick={() => setWizardStep(2)}
+                onClick={() => setWizardStep(wizardFormat === 'text' ? 1 : 2)}
                 className="border-[#27272a] text-xs cursor-pointer flex items-center gap-1.5"
               >
                 <ArrowLeft size={13} />
@@ -1400,7 +1451,13 @@ export function AIContentCreator({
                 title={`Synthesize Post (20 Credits • ${brandCredits} remaining)`}
               >
                 <Sparkles size={14} />
-                <span>Synthesize Post with Google AI (20 Credits • {brandCredits} remaining)</span>
+                <span>
+                  {wizardFormat === 'image_text'
+                    ? 'Synthesize Image + Text Package'
+                    : wizardFormat === 'image'
+                    ? 'Synthesize Visual Poster'
+                    : 'Synthesize Community Post'} (20 Credits • {brandCredits} remaining)
+                </span>
               </Button>
             </div>
           </Card>
@@ -1419,14 +1476,14 @@ export function AIContentCreator({
             <div className="space-y-2 max-w-md mx-auto">
               <h3 className="text-base font-bold text-white">
                 {wizardFormat === 'image_text'
-                  ? 'Google Vertex AI Nano Banana & Gemini are Synthesizing...'
+                  ? 'NEFRA Neural Studio is Synthesizing...'
                   : wizardFormat === 'image' 
-                  ? 'Google Vertex AI Nano Banana is Generating Your Image...' 
-                  : 'Google Vertex AI Gemini is Crafting Your Community Post...'}
+                  ? 'NEFRA Visual Studio is Generating Your Image...' 
+                  : 'NEFRA Neural Studio is Crafting Your Community Post...'}
               </h3>
               <p className="text-xs text-[#a1a1aa] leading-relaxed">
                 {wizardFormat === 'image_text'
-                  ? `Fusing your reference assets into a standalone image with Nano Banana while generating formatted YouTube Community text and hashtags with Gemini 2.5 Flash.`
+                  ? `Fusing your reference assets into a high-impact standalone image while generating formatted YouTube Community text and hashtags.`
                   : wizardFormat === 'image'
                   ? `Analyzing your uploaded assets (${(uploadedLogo ? 1 : 0) + (uploadedVisual ? 1 : 0)} attached) and requirements to generate a high-resolution, standalone image.`
                   : `Structuring your headline, value points, deliverables, call to action, and discovery hashtags for YouTube Community.`}
@@ -1437,10 +1494,10 @@ export function AIContentCreator({
               <span className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse" />
               <span>
                 {wizardFormat === 'image_text' 
-                  ? 'Models: gemini-2.5-flash-image (Nano Banana) + gemini-2.5-flash' 
+                  ? 'Engines: Visual Studio + Neural Copy Engine' 
                   : wizardFormat === 'image' 
-                  ? 'Model: gemini-2.5-flash-image (Nano Banana)' 
-                  : 'Model: gemini-2.5-flash'}
+                  ? 'Engine: Visual Studio' 
+                  : 'Engine: Neural Copy Engine'}
               </span>
             </div>
           </Card>
@@ -1509,17 +1566,17 @@ export function AIContentCreator({
             {isImageText ? (
               <>
                 <Layers size={12} />
-                <span>Image + Text (Nano Banana + Gemini)</span>
+                <span>Image + Text (AI Studio)</span>
               </>
             ) : isImageOnly ? (
               <>
                 <ImageIcon size={12} />
-                <span>Image Only (Vertex AI Nano Banana)</span>
+                <span>Image Only (Visual Studio)</span>
               </>
             ) : (
               <>
                 <FileText size={12} />
-                <span>Text Only (Gemini 2.5 Flash)</span>
+                <span>Text Only (Neural Copy)</span>
               </>
             )}
           </span>
@@ -1543,14 +1600,14 @@ export function AIContentCreator({
                   type="button"
                   onClick={() => handleOpenRedesignModal(activePost)}
                   className="absolute top-3 right-3 px-2.5 py-1 rounded-lg bg-black/80 hover:bg-black text-yellow-300 hover:text-yellow-200 border border-yellow-500/30 text-xs font-semibold flex items-center gap-1.5 shadow-lg backdrop-blur-md cursor-pointer transition-all hover:scale-105"
-                  title="Request AI Redesign with Vertex AI Nano Banana"
+                  title="Request AI Redesign with Visual Studio"
                 >
                   <RotateCcw size={12} />
                   <span>Redesign</span>
                 </button>
                 <div className="absolute bottom-3 left-3 px-2.5 py-1 rounded bg-black/80 backdrop-blur-md border border-[#27272a] text-[10px] text-white font-medium flex items-center gap-1.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-yellow-400" />
-                  <span>Nano Banana • {activePost.aspectRatio || '1:1'}</span>
+                  <span>Visual Studio • {activePost.aspectRatio || '1:1'}</span>
                 </div>
               </div>
 
@@ -1639,6 +1696,14 @@ export function AIContentCreator({
                   rows={8}
                   value={detailEditText}
                   onChange={(e) => setDetailEditText(e.target.value)}
+                  onBlur={() => {
+                    if (activePost && detailEditText !== activePost.postText) {
+                      const updated = { ...activePost, postText: detailEditText, updatedAt: new Date().toISOString() };
+                      setActivePost(updated);
+                      setCreatedPosts(prev => prev.map(p => p.id === updated.id ? updated : p));
+                      saveAIPostToFirestore(updated, activeUid);
+                    }
+                  }}
                   className="bg-[#000000] text-xs text-[#e4e4e7] leading-relaxed font-sans"
                 />
 
@@ -1677,7 +1742,7 @@ export function AIContentCreator({
                 type="button"
                 onClick={() => handleOpenRedesignModal(activePost)}
                 className="absolute top-3 right-3 px-3 py-1.5 rounded-lg bg-black/80 hover:bg-black text-yellow-300 hover:text-yellow-200 border border-yellow-500/30 text-xs font-semibold flex items-center gap-1.5 shadow-lg backdrop-blur-md cursor-pointer transition-all hover:scale-105"
-                title="Request AI Redesign with Vertex AI Nano Banana"
+                title="Request AI Redesign with Visual Studio"
               >
                 <RotateCcw size={13} />
                 <span>Request Redesign</span>
@@ -1782,6 +1847,14 @@ export function AIContentCreator({
                   rows={9}
                   value={detailEditText}
                   onChange={(e) => setDetailEditText(e.target.value)}
+                  onBlur={() => {
+                    if (activePost && detailEditText !== activePost.postText) {
+                      const updated = { ...activePost, postText: detailEditText, updatedAt: new Date().toISOString() };
+                      setActivePost(updated);
+                      setCreatedPosts(prev => prev.map(p => p.id === updated.id ? updated : p));
+                      saveAIPostToFirestore(updated, activeUid);
+                    }
+                  }}
                   className="bg-[#000000] text-xs text-[#e4e4e7] leading-relaxed font-sans"
                 />
 
@@ -1980,7 +2053,7 @@ export function AIContentCreator({
           isOpen={isRedesignModalOpen}
           onClose={() => !isRedesigning && setIsRedesignModalOpen(false)}
           title="Request Artwork Redesign"
-          description="Direct Google Vertex AI Nano Banana on what to adjust, improve, or restyle."
+          description="Direct the NEFRA Visual Studio on what to adjust, improve, or restyle."
           maxWidth="max-w-2xl"
         >
           <div className="space-y-4 pt-1 text-xs">

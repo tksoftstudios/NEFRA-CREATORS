@@ -104,10 +104,35 @@ export function hackathonAiShieldMiddleware(req, res, next) {
   // 3. Prompt Payload Flood Guard
   try {
     const rawPayload = JSON.stringify(req.body);
-    if (rawPayload.length > SHIELD_CONFIG.MAX_DEMO_PROMPT_CHARS * 3) {
+    // Allow up to 25MB for multimodal payloads (base64 images, audio, video frames)
+    if (rawPayload.length > 25 * 1024 * 1024) {
       console.warn(`⚠️ [HackathonShield] Blocked oversized payload from ${clientIp} (${rawPayload.length} bytes).`);
       return res.status(400).json({
-        error: 'Demo prompts are capped at 2,500 characters to prevent resource exhaustion. Please sign in with Google for unrestricted model access.',
+        error: 'Payload exceeds the 25MB safety limit.',
+        code: 'PAYLOAD_TOO_LARGE',
+        status: 400
+      });
+    }
+
+    // Check textual prompts specifically, excluding base64 / binary blobs
+    let totalTextLength = 0;
+    if (req.body?.prompt && typeof req.body.prompt === 'string') {
+      totalTextLength += req.body.prompt.length;
+    }
+    if (Array.isArray(req.body?.contents)) {
+      for (const content of req.body.contents) {
+        if (Array.isArray(content?.parts)) {
+          for (const part of content.parts) {
+            if (part?.text) totalTextLength += part.text.length;
+          }
+        }
+      }
+    }
+
+    if (totalTextLength > 30000) {
+      console.warn(`⚠️ [HackathonShield] Blocked excessive text length from ${clientIp} (${totalTextLength} chars).`);
+      return res.status(400).json({
+        error: 'Text prompt exceeds the 30,000 character limit. Please shorten your prompt.',
         code: 'PROMPT_TOO_LARGE',
         status: 400
       });
@@ -119,10 +144,10 @@ export function hackathonAiShieldMiddleware(req, res, next) {
     if (!req.body.generationConfig) {
       req.body.generationConfig = {};
     }
-    // Cap maxOutputTokens so an attacker cannot request 8,000 output tokens
+    // Allow generous 2048 output tokens so audits and JSON outputs are never cut off
     req.body.generationConfig.maxOutputTokens = Math.min(
-      req.body.generationConfig.maxOutputTokens || SHIELD_CONFIG.MAX_DEMO_OUTPUT_TOKENS,
-      SHIELD_CONFIG.MAX_DEMO_OUTPUT_TOKENS
+      req.body.generationConfig.maxOutputTokens || 2048,
+      2048
     );
   }
 

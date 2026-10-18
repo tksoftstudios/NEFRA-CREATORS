@@ -207,7 +207,7 @@ export function NefraSenseFloatingAdvisor({
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState('idle'); // 'idle' | 'thinking' | 'answered'
-  const [thinkingLabel, setThinkingLabel] = useState('Searching live web & trends...');
+  const [thinkingLabel, setThinkingLabel] = useState('Analyzing audience & trends...');
   const [answer, setAnswer] = useState('');
   const [copied, setCopied] = useState(false);
 
@@ -238,7 +238,24 @@ export function NefraSenseFloatingAdvisor({
   }, [activeRoute]);
 
   const inputRef = useRef(null);
+  const gigSuggestionsRef = useRef(null);
   const scrollContainerRef = useRef(null);
+
+  // Close @ gig suggestions on outside click
+  useEffect(() => {
+    if (!showGigSuggestions) return;
+    const handleClickOutside = (e) => {
+      if (
+        gigSuggestionsRef.current && 
+        !gigSuggestionsRef.current.contains(e.target) && 
+        !inputRef.current?.contains(e.target)
+      ) {
+        setShowGigSuggestions(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showGigSuggestions]);
   const isCreator = activePortal === 'creator';
   const themeColor = isCreator ? 'red' : 'green';
   const currentCredits = isCreator ? creatorCredits : brandCredits;
@@ -385,15 +402,15 @@ export function NefraSenseFloatingAdvisor({
     if (status !== 'thinking') return;
     const labels = isCreator
       ? [
-          "Searching live web & algorithmic trends...",
-          "Analyzing viewer hook retention heuristics...",
-          "Grounding with Google Cloud Vertex AI...",
+          "Analyzing audience & algorithmic trends...",
+          "Calibrating viewer retention & growth dynamics...",
+          "Evaluating pacing & high-impact hooks...",
           "Composing actionable creator strategy..."
         ]
       : [
-          "Querying live Cloud Firestore creator telemetry...",
-          "Evaluating creator ROI & audience reach models...",
-          "Grounding with Google Cloud Vertex AI...",
+          "Evaluating creator profiles & verified telemetry...",
+          "Analyzing creator ROI & audience reach models...",
+          "Assessing brand-creator compatibility...",
           "Formulating verified campaign recommendations..."
         ];
 
@@ -606,12 +623,12 @@ export function NefraSenseFloatingAdvisor({
                   />
                 </div>
                 <span className="text-xs sm:text-sm font-bold text-white tracking-wide">
-                  {isCreator ? 'NefraSense AI • YouTube Trends & Retention Advisor' : 'NefraSense AI • Influencer Strategic RAG Advisor'}
+                  {isCreator ? 'NefraSense AI • Growth & Retention Advisor' : 'NefraSense AI • Campaign Strategy Advisor'}
                 </span>
                 <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider ${
                   isCreator ? 'border border-rose-500/40 text-rose-300 bg-transparent' : 'border border-[#1db954]/40 text-[#1ed760] bg-transparent'
                 }`}>
-                  {isCreator ? 'Live Google Search' : 'Firestore RAG'}
+                  {isCreator ? 'Creator Intelligence' : 'Brand Intelligence'}
                 </span>
               </div>
 
@@ -791,7 +808,7 @@ export function NefraSenseFloatingAdvisor({
                                 ? 'border border-rose-500/40 text-rose-300 bg-rose-950/30'
                                 : 'border border-[#1db954]/40 text-[#1ed760] bg-emerald-950/30'
                             }`}>
-                              {item.portal === 'creator' ? 'Creator Strategy' : 'Brand RAG Match'}
+                              {item.portal === 'creator' ? 'Creator Strategy' : 'Campaign Strategy'}
                             </span>
                             <span className="text-[11px] text-zinc-500 flex items-center gap-1">
                               <Clock className="w-3 h-3" />
@@ -835,7 +852,7 @@ export function NefraSenseFloatingAdvisor({
                     setShowGigSuggestions(false);
                     handleExecuteSearch();
                   }}
-                  className="p-4 sm:p-5 flex flex-col gap-2 border-b border-white/[0.06] shrink-0 relative z-10"
+                  className="p-4 sm:p-5 flex flex-col gap-2 border-b border-white/[0.06] shrink-0 relative z-30"
                 >
                   {/* Attached Gig Context Tag for Brands */}
                   {!isCreator && attachedGig && (
@@ -993,53 +1010,69 @@ export function NefraSenseFloatingAdvisor({
 
                   {/* @ Gig Auto-Suggest Dropdown for Floating Advisor */}
                   {!isCreator && showGigSuggestions && (
-                    <div className="absolute left-4 right-4 top-full mt-1 bg-zinc-950 border border-zinc-800 rounded-xl shadow-2xl p-2 z-50 max-h-52 overflow-y-auto space-y-1">
-                      <div className="flex items-center justify-between px-2 py-1 text-[10px] text-zinc-500 border-b border-zinc-800/80 mb-1">
+                    <div 
+                      ref={gigSuggestionsRef}
+                      className="absolute left-4 right-4 top-full mt-2 rounded-xl shadow-[0_24px_60px_rgba(0,0,0,0.95)] p-2.5 z-50 max-h-56 overflow-y-auto space-y-1.5 border border-[#1db954]/40"
+                      style={{ backgroundColor: '#101014', opacity: 1 }}
+                    >
+                      <div className="flex items-center justify-between px-2.5 py-1 text-[10px] text-zinc-400 border-b border-zinc-800/80 mb-1">
                         <span className="flex items-center gap-1 font-semibold text-[#1ed760]">
                           <Briefcase className="w-3 h-3" /> Select Gig Context (@mention)
                         </span>
-                        <span>Use ↑↓ keys + Enter</span>
+                        <span className="text-zinc-500">Use ↑↓ keys + Enter</span>
                       </div>
-                      {((!campaigns || campaigns.length === 0) ? [] : (
-                        !gigSearchQuery ? campaigns : campaigns.filter(c => 
-                          c.title?.toLowerCase().includes(gigSearchQuery.toLowerCase()) ||
-                          c.category?.toLowerCase().includes(gigSearchQuery.toLowerCase())
-                        )
-                      )).map((gig, idx) => (
-                        <div
-                          key={gig.id || idx}
-                          onClick={() => {
-                            setAttachedGig(gig);
-                            setShowGigSuggestions(false);
-                            const cursorPos = inputRef.current?.selectionStart || query.length;
-                            const textBefore = query.slice(0, cursorPos);
-                            const textAfter = query.slice(cursorPos);
-                            const lastAt = textBefore.lastIndexOf('@');
-                            if (lastAt !== -1) {
-                              setQuery(textBefore.slice(0, lastAt) + `@${gig.title} ` + textAfter);
-                            } else {
-                              setQuery(prev => `${prev} @${gig.title} `);
-                            }
-                            inputRef.current?.focus();
-                          }}
-                          className={`px-2.5 py-1.5 rounded-lg cursor-pointer flex items-center justify-between transition-colors ${
-                            idx === selectedSuggestionIndex 
-                              ? 'bg-[#1db954]/20 border border-[#1db954]/40 text-white' 
-                              : 'hover:bg-zinc-900 text-zinc-300 border border-transparent'
-                          }`}
-                        >
-                          <div className="flex items-center space-x-2 truncate">
-                            <Briefcase className="w-3.5 h-3.5 text-[#1ed760] shrink-0" />
-                            <div className="truncate text-xs">
-                              <span className="font-semibold text-white truncate block">{gig.title}</span>
-                              <span className="text-[10px] text-zinc-400">{gig.category}</span>
+                      {(() => {
+                        const matchingGigs = (!campaigns || campaigns.length === 0) ? [] : (
+                          !gigSearchQuery ? campaigns : campaigns.filter(c => 
+                            c.title?.toLowerCase().includes(gigSearchQuery.toLowerCase()) ||
+                            c.category?.toLowerCase().includes(gigSearchQuery.toLowerCase())
+                          )
+                        );
+
+                        if (matchingGigs.length === 0) {
+                          return (
+                            <div className="px-3 py-3 text-center text-xs text-zinc-400">
+                              No campaigns or gigs found matching "@{gigSearchQuery}"
                             </div>
+                          );
+                        }
+
+                        return matchingGigs.map((gig, idx) => (
+                          <div
+                            key={gig.id || idx}
+                            onClick={() => {
+                              setAttachedGig(gig);
+                              setShowGigSuggestions(false);
+                              const cursorPos = inputRef.current?.selectionStart || query.length;
+                              const textBefore = query.slice(0, cursorPos);
+                              const textAfter = query.slice(cursorPos);
+                              const lastAt = textBefore.lastIndexOf('@');
+                              if (lastAt !== -1) {
+                                setQuery(textBefore.slice(0, lastAt) + `@${gig.title} ` + textAfter);
+                              } else {
+                                setQuery(prev => `${prev} @${gig.title} `);
+                              }
+                              inputRef.current?.focus();
+                            }}
+                            className={`px-3 py-2 rounded-lg cursor-pointer flex items-center justify-between transition-colors border ${
+                              idx === selectedSuggestionIndex 
+                                ? 'bg-[#1db954]/25 border-[#1db954]/60 text-white' 
+                                : 'bg-[#18181e] hover:bg-[#22222a] text-zinc-200 border-zinc-800/60'
+                            }`}
+                          >
+                            <div className="flex items-center space-x-2.5 min-w-0">
+                              <Briefcase className="w-3.5 h-3.5 text-[#1ed760] shrink-0" />
+                              <div className="truncate text-xs">
+                                <span className="font-semibold text-white truncate block">{gig.title}</span>
+                                <span className="text-[10px] text-zinc-400">{gig.category}</span>
+                              </div>
+                            </div>
+                            <span className="text-[10px] font-semibold text-[#1ed760] bg-[#1db954]/15 px-2 py-0.5 rounded shrink-0 ml-2 border border-[#1db954]/30">
+                              {formatCents(gig.budgetCents)}
+                            </span>
                           </div>
-                          <span className="text-[10px] font-semibold text-[#1ed760] bg-[#1db954]/10 px-2 py-0.5 rounded shrink-0 ml-2">
-                            {formatCents(gig.budgetCents)}
-                          </span>
-                        </div>
-                      ))}
+                        ));
+                      })()}
                     </div>
                   )}
                 </form>

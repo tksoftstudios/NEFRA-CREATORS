@@ -18,6 +18,7 @@ import {
   onSnapshot
 } from 'firebase/firestore';
 import { app, db } from '../config/firebaseConfig.js';
+import { getApiUrl } from '../config/apiClient.js';
 
 
 const auth = getAuth(app);
@@ -75,7 +76,7 @@ export async function connectYouTubeWithServer({ creatorId = null } = {}) {
   };
 
   // 2. Call Server Endpoint for Google YouTube Data API Verification & Firestore Persistence
-  const response = await fetch('/api/youtube/connect', {
+  const response = await fetch(getApiUrl('/api/youtube/connect'), {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -142,7 +143,7 @@ export async function connectYouTubeWithServer({ creatorId = null } = {}) {
  */
 export async function disconnectYouTubeWithServer({ creatorId = null } = {}) {
   const targetId = creatorId || auth.currentUser?.uid || 'creator_01';
-  const res = await fetch('/api/youtube/disconnect', {
+  const res = await fetch(getApiUrl('/api/youtube/disconnect'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ creatorId: targetId })
@@ -183,7 +184,7 @@ export async function fetchCreatorProfile(creatorId = 'creator_01') {
 
   // 2. Fallback to Server API endpoint
   try {
-    const res = await fetch(`/api/creator?creatorId=${encodeURIComponent(creatorId)}`);
+    const res = await fetch(getApiUrl(`/api/creator?creatorId=${encodeURIComponent(creatorId)}`));
     if (res.ok) {
       const json = await res.json();
       if (json.success && json.creator) {

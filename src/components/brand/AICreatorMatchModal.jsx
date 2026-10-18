@@ -120,7 +120,7 @@ export function AICreatorMatchModal({
           <div className="pt-2 border-t border-[#27272a] flex items-center justify-between text-xs text-[#a1a1aa]">
             <div className="flex items-center gap-1.5 text-[#3b82f6] text-[11px] font-medium">
               <Sparkles size={13} />
-              <span>Google Vertex AI Multimodal Semantic Matchmaker</span>
+              <span>NEFRA Multimodal Semantic Matchmaker</span>
             </div>
             <span className="text-[11px] text-[#71717a]">
               Evaluated across Niche, Budget, Geography & Modality
@@ -146,7 +146,7 @@ export function AICreatorMatchModal({
             <Loader2 size={24} className="animate-spin text-[#3b82f6]" />
             <div>
               <p className="text-xs font-semibold text-[#fafafa]">
-                Analyzing creators with Google Vertex AI...
+                Analyzing creators with NEFRA Matchmaker...
               </p>
               <p className="text-[11px] text-[#71717a] mt-0.5">
                 Benchmarking audience retention curves, topical niche, and escrow budget alignment

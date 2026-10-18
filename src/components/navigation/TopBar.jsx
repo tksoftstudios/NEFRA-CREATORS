@@ -94,7 +94,7 @@ export function TopBar({
               : 'bg-[#e11d48]/15 text-[#f43f5e] border-[#e11d48]/40'
           }`}>
             <span className={`w-1.5 h-1.5 rounded-full ${activePortal === 'brand' ? 'bg-[#1db954]' : 'bg-[#e11d48]'}`} />
-            {activePortal === 'brand' ? 'Spotify Green' : 'Creator Red'}
+            {activePortal === 'brand' ? 'Brand Emerald' : 'Creator Crimson'}
           </span>
         </div>
 

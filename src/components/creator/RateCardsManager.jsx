@@ -134,7 +134,7 @@ export function RateCardsManager({
               </span>
               <div>
                 <h3 className="text-xs font-bold uppercase tracking-wider text-[#fafafa]">
-                  Gemini AI Pricing Benchmark Intelligence
+                  NEFRA AI Pricing Benchmark Intelligence
                 </h3>
                 <p className="text-[11px] text-[#a1a1aa]">
                   Calculated from your channel retention curve, niche ({creator.category || 'Education & Science'}), and market demand.

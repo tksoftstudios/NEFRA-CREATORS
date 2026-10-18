@@ -107,7 +107,7 @@ export function LandingPage({
             <div className="flex items-center space-x-2">
               <span className="font-bold text-base tracking-tight text-[#fafafa]">NEFRA</span>
               <Badge variant="outline" className="text-[10px] bg-[#18181b] border-[#3f3f46] text-[#a1a1aa] py-0 px-1.5">
-                CREATORS X
+                by TKSOFT STUDIOS
               </Badge>
             </div>
           </div>
@@ -121,7 +121,7 @@ export function LandingPage({
           </span>
           <span className="flex items-center space-x-1.5">
             <Cpu size={13} className="text-[#e11d48]" />
-            <span>Google Vertex AI Verified</span>
+            <span>AI Certified Channel Telemetry</span>
           </span>
           <span className="flex items-center space-x-1.5">
             <Globe2 size={13} className="text-[#3b82f6]" />
@@ -183,10 +183,6 @@ export function LandingPage({
 
       {/* Hero Section */}
       <main className="flex-1 max-w-6xl mx-auto px-6 py-12 lg:py-20 flex flex-col items-center text-center z-10">
-        <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-[#18181b] border border-[#27272a] text-[#e11d48] text-xs font-medium mb-6">
-          <Sparkles size={14} />
-          <span>Next-Gen Creator Escrow & AI Intelligence Platform</span>
-        </div>
 
         <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-[#fafafa] max-w-4xl leading-tight">
           Sponsorships guaranteed by{' '}
@@ -239,7 +235,7 @@ export function LandingPage({
                   Content Creator
                 </h3>
                 <p className="text-xs sm:text-sm text-[#a1a1aa] mt-2 leading-relaxed">
-                  I produce videos, podcasts, streams or digital content and want transparent brand deals, guaranteed milestone payouts, and Vertex AI channel audits.
+                  I produce videos, podcasts, streams or digital content and want transparent brand deals, guaranteed milestone payouts, and AI channel audits.
                 </p>
 
                 {/* Benefits List */}
@@ -250,7 +246,7 @@ export function LandingPage({
                   </li>
                   <li className="flex items-center space-x-2">
                     <CheckCircle2 size={14} className="text-[#10b981] shrink-0" />
-                    <span>Vertex AI multimodal video & audience diagnostics</span>
+                    <span>Multimodal video & audience diagnostics</span>
                   </li>
                   <li className="flex items-center space-x-2">
                     <CheckCircle2 size={14} className="text-[#10b981] shrink-0" />
@@ -392,7 +388,7 @@ export function LandingPage({
                 Top 3 Creators in Every Category
               </h2>
               <p className="text-xs sm:text-sm text-[#a1a1aa] mt-1.5 max-w-2xl leading-relaxed">
-                Pre-screened and certified by Google Cloud Vertex AI multimodal video analysis. Real YouTube Data API metrics, zero vanity figures, backed by 100% pre-funded escrow.
+                Pre-screened and certified by NEFRA multimodal video analysis. Real YouTube Data API metrics, zero vanity figures, backed by 100% pre-funded escrow.
               </p>
             </div>
 
@@ -456,7 +452,7 @@ export function LandingPage({
                       </div>
 
                       <span className="text-[11px] text-[#71717a]">
-                        Google Vertex AI Certified
+                        AI Certified Telemetry
                       </span>
                     </div>
 
@@ -580,9 +576,9 @@ export function LandingPage({
             <div className="w-8 h-8 rounded-lg bg-[#e11d48]/10 text-[#e11d48] flex items-center justify-center mb-3">
               <Sparkles size={18} />
             </div>
-            <h4 className="text-sm font-semibold text-[#fafafa]">Vertex AI Diagnostic</h4>
+            <h4 className="text-sm font-semibold text-[#fafafa]">NEFRA Channel Diagnostic</h4>
             <p className="text-xs text-[#71717a] mt-1">
-              Authentic channel metrics, niche tag extraction, and multimodal video diagnostics on Google Cloud.
+              Authentic channel metrics, niche tag extraction, and multimodal video diagnostics with deep neural analytics.
             </p>
           </div>
 
@@ -611,7 +607,7 @@ export function LandingPage({
             <span>— Global Escrow & Creator Engine</span>
           </div>
           <div>
-            <span>Protected by Google Cloud Vertex AI & Stripe Sandbox</span>
+            <span>Protected by Automated Escrow & Milestone Verification</span>
           </div>
         </div>
       </footer>

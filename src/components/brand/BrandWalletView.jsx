@@ -47,7 +47,7 @@ export function BrandWalletView({
             </Badge>
           </div>
           <p className="text-xs text-[#a1a1aa] mt-1">
-            Dedicated Brand Credits power AI Content Creator posters, Gemini multimodal campaign briefs, and NefraSense intelligence.
+            Dedicated Brand Credits power AI Content Creator posters, AI multimodal campaign briefs, and NefraSense intelligence.
           </p>
         </div>
 

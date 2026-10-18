@@ -87,7 +87,7 @@ export function CreatorDashboard({
             {creator.aiScore}/100
           </p>
           <p className="text-xs text-[#a1a1aa] mt-1">
-            Gemini 3-video audit rating
+            Multimodal 3-video audit rating
           </p>
         </Card>
 

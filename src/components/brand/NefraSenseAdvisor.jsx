@@ -49,7 +49,7 @@ export function NefraSenseAdvisor({
   const [messages, setMessages] = useState([
     {
       role: 'assistant',
-      text: `Hello! I am NefraSense, your Vertex AI-powered influencer marketing strategist. I am grounded directly with your live Cloud Firestore database containing ${validCreators.length > 0 ? validCreators.length : 'verified'} creator telemetry records.\n\nTip: You can type "@" at any time to select a specific gig/campaign from your workspace, and I will tailor my recommendations, ROI models, and creator matching specifically to that gig!`
+      text: `Hello! I am NefraSense, your AI-powered influencer marketing strategist. I analyze verified platform telemetry across ${validCreators.length > 0 ? validCreators.length : 'verified'} creator records in real time.\n\nTip: You can type "@" at any time to select a specific gig/campaign from your workspace, and I will tailor my recommendations, ROI models, and creator matching specifically to that gig!`
     }
   ]);
   const [inputText, setInputText] = useState('');
@@ -270,8 +270,8 @@ export function NefraSenseAdvisor({
             <h1 className="text-xl font-bold tracking-tight text-[#fafafa]">
               NefraSense strategic advisor
             </h1>
-            <Badge className="bg-[#3b82f6]/15 text-[#3b82f6] border-[#3b82f6]/30 text-[10px]">Vertex AI Grounded</Badge>
-            <Badge className="bg-[#10b981]/15 text-[#10b981] border-[#10b981]/30 text-[10px]">Firestore RAG Live</Badge>
+            <Badge className="bg-[#3b82f6]/15 text-[#3b82f6] border-[#3b82f6]/30 text-[10px]">Strategic AI Active</Badge>
+            <Badge className="bg-[#10b981]/15 text-[#10b981] border-[#10b981]/30 text-[10px]">Live Creator Telemetry</Badge>
             <Badge className="bg-[#8b5cf6]/15 text-[#a78bfa] border-[#8b5cf6]/30 text-[10px] flex items-center space-x-1">
               <ShieldCheck size={10} className="mr-0.5" />
               <span>Creator Fame Guardrails</span>
@@ -282,11 +282,11 @@ export function NefraSenseAdvisor({
             </Badge>
           </div>
           <p className="text-xs text-[#a1a1aa] mt-1">
-            Real-time influencer marketing strategist grounded on live Cloud Firestore creator telemetry. Type <strong>@</strong> in the chat to select and discuss specific gigs!
+            Real-time influencer marketing strategist powered by live verified creator telemetry. Type <strong>@</strong> in the chat to select and discuss specific gigs!
           </p>
         </div>
 
-        {/* Toggle RAG Grounding Context Drawer */}
+        {/* Toggle Telemetry Drawer */}
         <Button
           variant="outline"
           size="sm"
@@ -294,22 +294,22 @@ export function NefraSenseAdvisor({
           className="border-[#27272a] bg-[#18181b] text-xs text-[#fafafa] flex items-center space-x-2 hover:border-[#3b82f6] transition-colors self-start sm:self-auto"
         >
           <Database size={13} className="text-[#3b82f6]" />
-          <span>RAG Context ({validCreators.length} Live Documents)</span>
+          <span>Verified Creator Telemetry ({validCreators.length} Records)</span>
           {showRAGContext ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
         </Button>
       </div>
 
-      {/* RAG Context Live Drawer */}
+      {/* Verified Creator Telemetry Live Drawer */}
       {showRAGContext && (
         <Card className="bg-[#121215] border border-[#3b82f6]/30 p-4 rounded-xl shadow-lg space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
           <div className="flex items-center justify-between pb-3 border-b border-[#27272a]">
             <div className="flex items-center space-x-2">
               <Database size={15} className="text-[#3b82f6]" />
-              <span className="text-xs font-semibold text-[#fafafa]">Cloud Firestore In-Context Snapshot</span>
-              <Badge className="bg-[#3b82f6]/20 text-[#60a5fa] border-none text-[10px]">Option 1: In-Context Injection</Badge>
+              <span className="text-xs font-semibold text-[#fafafa]">Verified Creator Telemetry Snapshot</span>
+              <Badge className="bg-[#3b82f6]/20 text-[#60a5fa] border-none text-[10px]">Live Synchronized</Badge>
             </div>
             <span className="text-[11px] text-[#71717a]">
-              Synchronized with Firebase / Firestore collection <code className="text-[#a1a1aa]">users/creators</code>
+              Synchronized with verified creator directory records
             </span>
           </div>
 
@@ -443,7 +443,8 @@ export function NefraSenseAdvisor({
         {showGigSuggestions && filteredGigs.length > 0 && (
           <div
             ref={suggestionsRef}
-            className="absolute left-3 right-3 bottom-16 bg-[#121215] border border-[#3b82f6]/40 rounded-xl shadow-2xl p-2 z-50 max-h-56 overflow-y-auto space-y-1 backdrop-blur-md animate-in fade-in slide-in-from-bottom-2 duration-150"
+            className="absolute left-3 right-3 bottom-16 border border-[#3b82f6]/40 rounded-xl shadow-2xl p-2 z-50 max-h-56 overflow-y-auto space-y-1 backdrop-blur-md animate-in fade-in slide-in-from-bottom-2 duration-150"
+            style={{ backgroundColor: '#101014', opacity: 1 }}
           >
             <div className="flex items-center justify-between px-2 py-1 text-[10px] text-[#71717a] border-b border-[#27272a] mb-1">
               <span className="flex items-center gap-1 font-semibold text-[#38bdf8]">
@@ -455,10 +456,10 @@ export function NefraSenseAdvisor({
               <div
                 key={gig.id || idx}
                 onClick={() => handleSelectGig(gig)}
-                className={`px-2.5 py-2 rounded-lg cursor-pointer flex items-center justify-between transition-colors ${
+                className={`px-2.5 py-2 rounded-lg cursor-pointer flex items-center justify-between transition-colors border ${
                   idx === selectedSuggestionIndex 
-                    ? 'bg-[#3b82f6]/20 border border-[#3b82f6]/40 text-[#fafafa]' 
-                    : 'hover:bg-[#18181b] text-[#a1a1aa] border border-transparent'
+                    ? 'bg-[#3b82f6]/20 border-[#3b82f6]/40 text-[#fafafa]' 
+                    : 'bg-[#18181e] hover:bg-[#22222a] text-[#a1a1aa] border-zinc-800/60'
                 }`}
               >
                 <div className="flex items-center space-x-2.5 min-w-0">

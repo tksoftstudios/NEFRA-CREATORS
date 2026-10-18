@@ -77,7 +77,7 @@ export function BrandContracts({
           Escrow vaults & deliverable review
         </h1>
         <p className="text-xs text-[#a1a1aa] mt-1">
-          Review uploaded drafts from Firebase Storage, inspect Google Content Moderation safety scores, sign off on completed deliverables, or request revisions.
+          Review uploaded drafts from secure storage, inspect Content Moderation safety scores, sign off on completed deliverables, or request revisions.
         </p>
       </div>
 
@@ -246,10 +246,10 @@ export function BrandContracts({
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-1.5 text-xs font-semibold text-[#fafafa]">
                         <ShieldCheck size={14} className="text-[#10b981]" />
-                        <span>Google Cloud Vertex AI Content Moderation & Brand Safety Audit</span>
+                        <span>NEFRA Content Moderation & Brand Safety Audit</span>
                       </div>
                       <Badge variant="action" className="text-[10px] font-mono">
-                        {moderation?.provider || 'Google Vertex AI Safety Engine'}
+                        {moderation?.provider || 'NEFRA Content Safety Engine'}
                       </Badge>
                     </div>
 

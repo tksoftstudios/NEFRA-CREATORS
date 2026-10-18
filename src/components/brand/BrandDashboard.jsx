@@ -163,12 +163,12 @@ export function BrandDashboard({
               <h3 className="text-sm font-semibold text-[#fafafa]">AI Campaign Job Card Builder</h3>
             </div>
             <p className="text-xs text-[#a1a1aa] mt-2">
-              Transform natural language requirements into structured campaign briefs with budget and deliverables in seconds using Gemini Flash.
+              Transform natural language requirements into structured campaign briefs with budget and deliverables in seconds using NEFRA AI.
             </p>
           </div>
           <div className="pt-4 mt-4 border-t border-[#27272a]">
             <Button size="sm" className="w-full justify-between" onClick={() => onNavigate('new-campaign')}>
-              <span>Build campaign with Gemini (15 credits • {brandCredits} remaining)</span>
+              <span>Build campaign with AI (15 credits • {brandCredits} remaining)</span>
               <ArrowRight size={14} />
             </Button>
           </div>
@@ -289,7 +289,7 @@ export function BrandDashboard({
                   variant="outline" 
                   onClick={() => setAiMatchCampaign(camp)}
                   className="border-[#27272a] text-xs text-[#fafafa] hover:border-[#e11d48] hover:bg-[#e11d48]/10 cursor-pointer space-x-1"
-                  title="Run Google Vertex AI Matchmaker for this gig"
+                  title="Run NEFRA Matchmaker for this gig"
                 >
                   <Sparkles size={12} className="text-[#e11d48]" />
                   <span>AI Match</span>

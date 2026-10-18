@@ -80,7 +80,7 @@ export function CreatorMatchList({
           Multimodal creator matchmaker
         </h1>
         <p className="text-xs text-[#a1a1aa] mt-1">
-          Ranked candidate talent with verified YouTube audience reach, Gemini compatibility scores, and regional feasibility checks.
+          Ranked candidate talent with verified YouTube audience reach, AI compatibility scores, and regional feasibility checks.
         </p>
       </div>
 
@@ -129,7 +129,7 @@ export function CreatorMatchList({
             <span className="text-[#71717a] ml-2">• Budget: {formatCents(activeGig.budgetCents)} • {activeGig.category}</span>
           </div>
           <span className="text-[11px] text-[#3b82f6] font-medium">
-            Google Vertex AI Match Active
+            NEFRA Matchmaker Active
           </span>
         </div>
       )}
@@ -177,7 +177,7 @@ export function CreatorMatchList({
                 <div className="p-3 bg-[#18181b] rounded-lg border border-[#27272a] text-xs text-[#a1a1aa] mt-3">
                   <div className="flex items-center space-x-1 text-[10px] uppercase font-semibold text-[#e11d48] mb-1">
                     <Sparkles size={11} />
-                    <span>{activeGig ? `AI Rationale for "${activeGig.title.slice(0, 30)}..."` : 'Gemini tactical rationale'}</span>
+                    <span>{activeGig ? `AI Rationale for "${activeGig.title.slice(0, 30)}..."` : 'AI tactical rationale'}</span>
                   </div>
                   <p className="text-[11px] leading-relaxed">
                     {creator.tacticalRationale || `Audience retention curve confirms deep interest in ${creator.category}. High conversion intent for developer and software products.`}

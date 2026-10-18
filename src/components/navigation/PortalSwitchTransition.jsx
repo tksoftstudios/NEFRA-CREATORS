@@ -14,7 +14,7 @@ import {
 /**
  * Full-screen high-tech portal switching transition
  * Displays a cinematic animated transition when shifting between Creator and Brand portals,
- * dynamically highlighting the theme change (Creator Red vs Spotify Green).
+ * dynamically highlighting the theme change (Creator Crimson vs Brand Emerald).
  */
 export function PortalSwitchTransition({
   targetPortal,
@@ -60,9 +60,9 @@ export function PortalSwitchTransition({
       : '#3b82f6';
 
   const themeLabel = isBrandTarget 
-    ? 'Spotify Green Theme' 
+    ? 'Brand Emerald Theme' 
     : isCreatorTarget 
-      ? 'Creator Red Theme' 
+      ? 'Creator Crimson Theme' 
       : 'Admin Blue Theme';
 
   const portalTitle = isBrandTarget 
@@ -72,7 +72,7 @@ export function PortalSwitchTransition({
       : 'Admin Command Center';
 
   const subtitle = isBrandTarget
-    ? 'Activating campaign escrow, Gemini matchmaker & AI Studio...'
+    ? 'Activating campaign escrow, AI matchmaker & Neural Studio...'
     : isCreatorTarget
       ? 'Activating channel diagnostics, rate cards & AI Score engine...'
       : 'Loading administrative controls & dispute management...';

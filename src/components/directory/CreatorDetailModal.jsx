@@ -72,7 +72,7 @@ export function CreatorDetailModal({
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <h5 className="text-xs uppercase font-semibold text-[#a1a1aa] tracking-wider">
-              Gemini 3-Video Multimodal Audit
+              Multimodal Video Audit
             </h5>
             <span className="text-[11px] text-[#71717a]">Verified Video Telemetry</span>
           </div>
@@ -113,7 +113,7 @@ export function CreatorDetailModal({
                     </div>
                     <div>
                       <p className="text-xs font-medium text-[#fafafa]">{video.title}</p>
-                      <p className="text-[10px] text-[#71717a]">{video.views} views • Vertex AI Verified</p>
+                      <p className="text-[10px] text-[#71717a]">{video.views} views • AI Verified</p>
                     </div>
                   </div>
                   <Badge variant="outline" className="text-[10px]">Audited</Badge>

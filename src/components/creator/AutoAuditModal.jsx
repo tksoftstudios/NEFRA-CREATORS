@@ -117,7 +117,7 @@ export function AutoAuditModal({
   const steps = [
     { title: "Verifying YouTube Channel Telemetry", desc: `${channel?.title || 'Channel'} • ${channel?.subscribersFormatted || '0'} subscribers via Google Data API` },
     { title: "Ingesting Baseline Video Telemetry (3 Uploads)", desc: `Auditing last published 3 videos (Default Baseline). Can scan up to 20 uploads with credits.` },
-    { title: "Google Cloud Vertex AI Multimodal Analysis", desc: "Evaluating hook retention curve, pacing cadence, and brand safety" },
+    { title: "Multimodal Video & Retention Analysis", desc: "Evaluating hook retention curve, pacing cadence, and brand safety" },
     { title: "Calibrating AI Score & Justification", desc: "Computing weighted rating index and audience demographics" },
     { title: "Generating Reach-Calibrated Rate Cards", desc: "Pricing packages optimized for CPM market rates and score" }
   ];
@@ -127,7 +127,7 @@ export function AutoAuditModal({
       isOpen={isOpen}
       onClose={() => { if (!isAuditing) handleFinish(); }}
       title="Automated Channel Audit in Progress"
-      description="Vertex AI is automatically analyzing your verified channel telemetry and generating calibrated rate cards."
+      description="NEFRA AI is automatically analyzing your verified channel telemetry and generating calibrated rate cards."
       maxWidth="max-w-xl"
     >
       <div className="space-y-6">
@@ -136,7 +136,7 @@ export function AutoAuditModal({
           <div className="flex items-center justify-between text-xs">
             <span className="font-semibold text-white flex items-center space-x-2">
               <span className={`w-2 h-2 rounded-full ${isAuditing ? 'bg-[#e11d48] animate-ping' : 'bg-[#10b981]'}`} />
-              <span>{isAuditing ? 'Auditing Telemetry via Vertex AI...' : 'Audit Complete & Verified!'}</span>
+              <span>{isAuditing ? 'Auditing Telemetry via Neural Diagnostics...' : 'Audit Complete & Verified!'}</span>
             </span>
             <span className="text-[#a1a1aa] font-mono">{currentStep * 20}%</span>
           </div>

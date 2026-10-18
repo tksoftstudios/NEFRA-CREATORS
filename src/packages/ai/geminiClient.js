@@ -4,6 +4,7 @@
  * Google Cloud Vertex AI (aiplatform.googleapis.com) to consume GCP Free Trial credits ($269.54).
  */
 import { deduplicateCreators } from '../../lib/utils';
+import { getApiUrl } from '../../config/apiClient.js';
 
 export function getVertexConfig() {
   const projectId = import.meta.env.VITE_GCP_PROJECT_ID || import.meta.env.VITE_FIREBASE_PROJECT_ID || 'nefra-creators-x';
@@ -52,7 +53,7 @@ export async function checkShieldRateLimit(res) {
 
 export async function callVertexProxy(requestBody) {
   const headers = getShieldHeaders();
-  const res = await fetch('/api/vertex/generateContent', {
+  const res = await fetch(getApiUrl('/api/vertex/generateContent'), {
     method: 'POST',
     headers,
     body: JSON.stringify(requestBody)
@@ -278,7 +279,7 @@ Output strict JSON with this exact schema:
               : [],
             requestedDepth: videoLimit,
             auditedVideosCount: candidateVideos.length,
-            engine: `Google Cloud Vertex AI (${model})`,
+            engine: `NEFRA Multimodal Diagnostic Engine (${model})`,
             isLiveGemini: true,
             inferredCountry: channelCountry !== 'Global' ? channelCountry : undefined,
             auditedAt: new Date().toISOString()
@@ -1452,15 +1453,15 @@ export function createProceduralTechArtwork({
   ctx.font = 'bold 12px system-ui, -apple-system, sans-serif';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText(`VERTEX AI NANO BANANA • ${topic.toUpperCase().slice(0, 32)}`, cx, pillY + pillH / 2);
+  ctx.fillText(`NEFRA VISUAL STUDIO • ${topic.toUpperCase().slice(0, 32)}`, cx, pillY + pillH / 2);
 
   // 8. Top Telemetry Header
   ctx.fillStyle = '#71717a';
   ctx.font = '600 10px monospace';
   ctx.textAlign = 'left';
-  ctx.fillText('VERTEX_AI.NANO_BANANA // 8K NATIVE IMAGE SYNTHESIZER', 25, 26);
+  ctx.fillText('NEFRA.VISUAL_ENGINE // 8K NATIVE IMAGE SYNTHESIZER', 25, 26);
   ctx.textAlign = 'right';
-  ctx.fillText('ENGINE: GOOGLE NANO BANANA [ONLINE]', 855, 26);
+  ctx.fillText('ENGINE: NEFRA VISUAL STUDIO [ONLINE]', 855, 26);
 
   return canvas.toDataURL('image/png');
 }
@@ -1559,7 +1560,7 @@ export async function generateAIPosterArtwork({
       console.log('🍌 [Google Vertex AI Nano Banana] Requesting AI visual synthesis for:', cleanTopic);
       const userToken = localStorage.getItem('nefra_vertex_access_token');
       
-      const res = await fetch('/api/ai/generateImage', {
+      const res = await fetch(getApiUrl('/api/ai/generateImage'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1745,7 +1746,7 @@ Respond ONLY with a valid JSON object matching this schema:
       if (rawText) {
         const parsed = JSON.parse(rawText);
         parsed.evaluatedAt = new Date().toISOString();
-        parsed.provider = 'Google Cloud Vertex AI & Gemini Content Safety Engine';
+        parsed.provider = 'NEFRA Content Safety Engine';
         console.log('%c✅ [Google Content Moderation] Live Safety Score:', 'color: #10b981; font-weight: bold;', `${parsed.overallScore}/100 (${parsed.safetyGrade})`);
         console.groupEnd();
         return parsed;
@@ -1765,9 +1766,9 @@ Respond ONLY with a valid JSON object matching this schema:
     overallScore,
     safetyGrade: overallScore >= 95 ? 'AAA Enterprise Certified' : 'AA Brand Safe',
     verdict: 'APPROVED_BRAND_SAFE',
-    provider: 'Google Cloud Vertex AI & Gemini Content Safety Engine',
+    provider: 'NEFRA Content Safety Engine',
     ftcDisclosureDetected: hasDisclosure,
-    summary: `Verified by Google Content Safety & Moderation Engine. Deliverable adheres to Google YouTube Advertiser-Friendly guidelines and enterprise brand protection protocols with 0 high-risk violations detected.`,
+    summary: `Verified by NEFRA Content Safety & Moderation Engine. Deliverable adheres to enterprise brand protection protocols with 0 high-risk violations detected.`,
     categories: [
       {
         id: 'harassment',

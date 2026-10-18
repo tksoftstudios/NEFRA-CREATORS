@@ -83,7 +83,7 @@ export function AIScoreJustificationModal({
     <Dialog
       isOpen={isOpen}
       onClose={onClose}
-      title="How the Vertex AI Creator Score is Computed & Justified"
+      title="How the NEFRA Creator AI Score is Computed & Justified"
       description="Transparent breakdown of the 4 weighted evaluation pillars governing creator quality ratings on NEFRA."
       maxWidth="max-w-2xl"
     >
@@ -102,7 +102,7 @@ export function AIScoreJustificationModal({
                 </Badge>
               </div>
               <p className="text-xs text-[#a1a1aa] mt-0.5">
-                Calibrated via Google Cloud Vertex AI multimodal neural diagnostics.
+                Calibrated via multimodal neural diagnostics and verified telemetry.
               </p>
             </div>
           </div>

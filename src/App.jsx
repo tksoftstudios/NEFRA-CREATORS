@@ -1343,7 +1343,7 @@ export default function App() {
                 <ChannelAuditView
                   creator={activeCreator}
                   credits={creatorCredits}
-                  onDeductCredits={(amt) => handleDeductCreatorCredits(amt, 'Gemini Multimodal Channel Audit & Diagnostics')}
+                  onDeductCredits={(amt) => handleDeductCreatorCredits(amt, 'NEFRA Multimodal Channel Audit & Diagnostics')}
                   onUpdateAudit={async (newAudit) => {
                     const categoryUpdate = newAudit.category || undefined;
                     const tagsUpdate = (newAudit.nicheTags && newAudit.nicheTags.length > 0) ? newAudit.nicheTags : undefined;

@@ -11,12 +11,20 @@ const PORT = parseInt(process.env.PORT, 10) || 5001;
 const app = express();
 
 app.use(cors({
-  origin: (origin, callback) => callback(null, true),
-  credentials: true
+  origin: true,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'x-client-session', 'x-csrf-token', 'Accept']
 }));
+app.options('*', cors());
 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
+
+app.use((req, res, next) => {
+  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
+  next();
+});
 
 // Health Check
 app.get('/api/health', (req, res) => {

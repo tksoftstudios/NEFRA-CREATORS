@@ -8,6 +8,7 @@ import {
   getGeminiApiKey, 
   saveGeminiApiKey 
 } from '../../packages/ai/geminiClient';
+import { getApiUrl } from '../../config/apiClient';
 import { 
   Sparkles, 
   ShieldCheck, 
@@ -112,7 +113,7 @@ export function ChannelAuditView({
   // Load Vertex AI Backend Status
   const loadVertexStatus = async () => {
     try {
-      const res = await fetch('/api/vertex/status');
+      const res = await fetch(getApiUrl('/api/vertex/status'));
       if (res.ok) {
         const data = await res.json();
         setVertexStatus(data);
@@ -137,7 +138,7 @@ export function ChannelAuditView({
         ? { accessToken: serviceAccountInput.trim() } 
         : { serviceAccountJson: serviceAccountInput.trim() };
 
-      const res = await fetch('/api/vertex/credentials', {
+      const res = await fetch(getApiUrl('/api/vertex/credentials'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -149,7 +150,7 @@ export function ChannelAuditView({
       }
 
       await loadVertexStatus();
-      setStatusNotice(`Vertex AI credentials active (${data.authType === 'service_account' ? 'Service Account' : 'OAuth Token'})!`);
+      setStatusNotice(`AI Engine credentials active (${data.authType === 'service_account' ? 'Service Account' : 'OAuth Token'})!`);
       setServiceAccountInput('');
       setIsKeyModalOpen(false);
       setTimeout(() => setStatusNotice(null), 4000);
@@ -223,9 +224,7 @@ export function ChannelAuditView({
       });
 
       setStatusNotice(
-        res.isLiveGemini
-          ? `Google Cloud Vertex AI evaluated your channel uploads (${res.auditedVideosCount || videoLimit} Videos)! Deducted ${cost} Credits (Remaining: ${remainingCredits}). Classified as "${res.category}".`
-          : `AI Channel Audit complete (${res.auditedVideosCount || videoLimit} Videos)! Deducted ${cost} Credits (Remaining: ${remainingCredits}). Classified as "${res.category}" with ${res.nicheTags?.length || 0} extracted tags.`
+        `AI Channel Audit complete (${res.auditedVideosCount || videoLimit} Videos)! Deducted ${cost} Credits (Remaining: ${remainingCredits}). Classified as "${res.category}" with ${res.nicheTags?.length || 0} extracted tags.`
       );
     } catch (e) {
       console.error('❌ [ChannelAuditView] Run audit error:', e);
@@ -243,14 +242,14 @@ export function ChannelAuditView({
         <div>
           <div className="flex items-center space-x-2.5">
             <h1 className="text-xl font-bold tracking-tight text-[#fafafa]">
-              Vertex AI Multimodal Channel Audit &amp; Diagnostics
+              Multimodal Channel Audit &amp; Diagnostics
             </h1>
             <Badge className="bg-[#3b82f6]/15 text-[#3b82f6] border-[#3b82f6]/30 text-[10px]">
-              ● Vertex AI (GCP Credits)
+              ● AI Engine Active
             </Badge>
           </div>
           <p className="text-xs text-[#a1a1aa] mt-1.5 leading-relaxed max-w-3xl">
-            Google Cloud Vertex AI deep-inspection engine analyzing hook retention, speech pacing, advertiser brand safety, and dynamic sponsorship rate benchmarks across your latest YouTube uploads.
+            NEFRA deep-inspection engine analyzing hook retention, speech pacing, advertiser brand safety, and dynamic sponsorship rate benchmarks across your latest YouTube uploads.
           </p>
         </div>
 
@@ -271,7 +270,7 @@ export function ChannelAuditView({
             className="space-x-1.5 text-xs text-[#a1a1aa] hover:text-[#fafafa]"
           >
             <Key size={13} className="text-[#3b82f6]" />
-            <span>Vertex AI Config</span>
+            <span>AI Diagnostics Config</span>
           </Button>
 
           <Button
@@ -305,7 +304,7 @@ export function ChannelAuditView({
               </Badge>
             </div>
             <p className="text-xs text-[#a1a1aa] mt-1 leading-relaxed">
-              By default, NEFRA audits the last published 3 videos. Use your credits to allow Vertex AI to scan deeper across 5, 10, or 20 published videos for enhanced retention accuracy and brand safety certification.
+              By default, NEFRA audits the last published 3 videos. Use your credits to allow the diagnostic engine to scan deeper across 5, 10, or 20 published videos for enhanced retention accuracy and brand safety certification.
             </p>
           </div>
           <div className="text-right shrink-0">
@@ -398,7 +397,7 @@ export function ChannelAuditView({
           </div>
           <p className="text-[11px] text-[#a1a1aa]">
             {recentVideos.length > 0
-              ? `Evaluating ${Math.min(recentVideos.length, selectedDepth.videoCount)} latest uploads (Scanning ${selectedDepth.tagline}) with Vertex AI.`
+              ? `Evaluating ${Math.min(recentVideos.length, selectedDepth.videoCount)} latest uploads (Scanning ${selectedDepth.tagline}) with multimodal AI.`
               : 'Evaluating channel telemetry, category positioning, and audience demographics (0 video uploads).'}
           </p>
         </Card>
@@ -433,7 +432,7 @@ export function ChannelAuditView({
                   AI Channel Analysis Results
                 </h3>
                 <p className="text-[11px] text-[#a1a1aa]">
-                  Audited by {audit.engine || (hasCustomKey ? "Google Gemini 2.0 Flash" : "NEFRA Multimodal Diagnostic Engine")}
+                  Audited by {audit.engine || "NEFRA Multimodal Diagnostic Engine"}
                 </p>
               </div>
             </div>
@@ -715,7 +714,7 @@ export function ChannelAuditView({
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div className="flex items-center space-x-2">
             <h3 className="text-xs uppercase font-semibold text-[#a1a1aa] tracking-wider">
-              Recent Video Telemetry Evaluated By Vertex AI
+              Recent Video Telemetry Evaluated By AI Engine
             </h3>
             {recentVideos.length > 0 && (
               <Badge variant="outline" className="text-[10px] border-[#3f3f46]">
@@ -724,7 +723,7 @@ export function ChannelAuditView({
             )}
           </div>
           <span className="text-[11px] text-[#71717a]">
-            Engine: {audit.engine || "Google Cloud Vertex AI"}
+            Engine: {audit.engine || "NEFRA Multimodal Diagnostic Engine"}
           </span>
         </div>
 
@@ -736,7 +735,7 @@ export function ChannelAuditView({
             <div>
               <h4 className="text-sm font-semibold text-white">No Public Video Uploads Found on This Channel</h4>
               <p className="text-xs text-[#a1a1aa] mt-1 max-w-md mx-auto leading-relaxed">
-                Your connected YouTube channel currently has 0 public video uploads. As soon as you publish your first video on YouTube, Vertex AI will extract your video pacing, retention hooks, and sponsorship mid-roll placements.
+                Your connected YouTube channel currently has 0 public video uploads. As soon as you publish your first video on YouTube, the AI audit engine will extract your video pacing, retention hooks, and sponsorship mid-roll placements.
               </p>
             </div>
             {creator.youtube?.channelId && (
@@ -883,15 +882,15 @@ export function ChannelAuditView({
       <Dialog
         isOpen={isKeyModalOpen}
         onClose={() => setIsKeyModalOpen(false)}
-        title="Google Cloud Vertex AI Credentials"
-        description="Connect your GCP project credentials to bill multimodal channel audits directly to your $269.54 Google Cloud credits."
+        title="AI Engine Configuration"
+        description="Configure backend cloud connectivity to power multimodal channel audits and rate card benchmarking."
         maxWidth="max-w-lg"
       >
         <div className="space-y-4">
           {/* Status Box */}
           <div className="p-3 bg-[#18181b] border border-[#27272a] rounded-lg text-xs space-y-2">
             <div className="flex items-center justify-between">
-              <span className="font-semibold text-[#fafafa]">GCP Credit Balance:</span>
+              <span className="font-semibold text-[#fafafa]">Platform Credit Balance:</span>
               <span className="text-[#10b981] font-mono font-bold">$269.54 USD Available</span>
             </div>
             <div className="flex items-center justify-between text-[#71717a]">

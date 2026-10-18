@@ -32,7 +32,7 @@ export function CreatorWalletView({
             </Badge>
           </div>
           <p className="text-xs text-[#a1a1aa] mt-1">
-            Credits are consumed when running Vertex AI multimodal audits, drafting proposals, and bidding on campaigns.
+            Credits are consumed when running AI multimodal audits, drafting proposals, and bidding on campaigns.
           </p>
         </div>
 

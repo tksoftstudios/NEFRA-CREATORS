@@ -57,7 +57,7 @@ export async function uploadGeneratedArtworkToFirebase({
     const snapshot = await uploadString(imageRef, dataUrl, 'data_url', {
       contentType: mimeType,
       customMetadata: {
-        model: 'Google Vertex AI Nano Banana (gemini-2.5-flash-image)',
+        model: 'NEFRA Visual Studio',
         app: 'NEFRA Creators X',
         uploadedAt: new Date().toISOString()
       }
