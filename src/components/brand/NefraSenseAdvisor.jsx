@@ -1,10 +1,28 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
 import { askNefraSense } from '../../packages/ai/geminiClient';
-import { deduplicateCreators } from '../../lib/utils';
-import { Sparkles, Send, Bot, User, Database, ChevronDown, ChevronUp, CheckCircle2, ShieldCheck, Coins, Zap, BarChart3, Target, Lightbulb } from 'lucide-react';
+import { deduplicateCreators, formatCents } from '../../lib/utils';
+import { 
+  Sparkles, 
+  Send, 
+  Bot, 
+  User, 
+  Database, 
+  ChevronDown, 
+  ChevronUp, 
+  CheckCircle2, 
+  ShieldCheck, 
+  Coins, 
+  Zap, 
+  BarChart3, 
+  Target, 
+  Lightbulb,
+  Briefcase,
+  AtSign,
+  X
+} from 'lucide-react';
 
 export function NefraSenseAdvisor({ 
   campaigns = [], 
@@ -21,7 +39,6 @@ export function NefraSenseAdvisor({
   );
 
   const c1 = validCreators[0] || { name: "Elena Rostova", handle: "@elenacodes" };
-  // Guarantee c2 is a completely distinct creator from c1
   const c2 = validCreators.find(c => 
     c.id !== c1.id && 
     (c.handle ? c.handle.toLowerCase() !== c1.handle?.toLowerCase() : true) &&
@@ -32,32 +49,150 @@ export function NefraSenseAdvisor({
   const [messages, setMessages] = useState([
     {
       role: 'assistant',
-      text: `Hello! I am NefraSense, your Vertex AI-powered influencer marketing strategist. I am grounded directly with your live Cloud Firestore database containing ${validCreators.length > 0 ? validCreators.length : 'verified'} creator telemetry records.\n\nAsk me to compare candidates, evaluate reach, or optimize your campaign budget!`
+      text: `Hello! I am NefraSense, your Vertex AI-powered influencer marketing strategist. I am grounded directly with your live Cloud Firestore database containing ${validCreators.length > 0 ? validCreators.length : 'verified'} creator telemetry records.\n\nTip: You can type "@" at any time to select a specific gig/campaign from your workspace, and I will tailor my recommendations, ROI models, and creator matching specifically to that gig!`
     }
   ]);
   const [inputText, setInputText] = useState('');
   const [isThinking, setIsThinking] = useState(false);
 
+  // @ Gig Auto-Suggest State
+  const [attachedGig, setAttachedGig] = useState(null);
+  const [showGigSuggestions, setShowGigSuggestions] = useState(false);
+  const [gigSearchQuery, setGigSearchQuery] = useState('');
+  const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(0);
+
+  const inputRef = useRef(null);
+  const suggestionsRef = useRef(null);
+
+  // Filtered campaigns for @ auto-suggest
+  const filteredGigs = useMemo(() => {
+    if (!campaigns || campaigns.length === 0) return [];
+    if (!gigSearchQuery) return campaigns;
+    const q = gigSearchQuery.toLowerCase();
+    return campaigns.filter(c => 
+      c.title?.toLowerCase().includes(q) ||
+      c.category?.toLowerCase().includes(q) ||
+      c.brandName?.toLowerCase().includes(q)
+    );
+  }, [campaigns, gigSearchQuery]);
+
+  // Click outside to close auto-suggest popup
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (
+        suggestionsRef.current && 
+        !suggestionsRef.current.contains(e.target) &&
+        inputRef.current &&
+        !inputRef.current.contains(e.target)
+      ) {
+        setShowGigSuggestions(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleInputChange = (e) => {
+    const value = e.target.value;
+    const cursorPos = e.target.selectionStart || 0;
+    setInputText(value);
+
+    // Detect if user typed @
+    const textBeforeCursor = value.slice(0, cursorPos);
+    const lastAtIndex = textBeforeCursor.lastIndexOf('@');
+
+    if (lastAtIndex !== -1) {
+      const queryAfterAt = textBeforeCursor.slice(lastAtIndex + 1);
+      // Ensure there are no newlines or closing brackets in between
+      if (!queryAfterAt.includes('\n') && !queryAfterAt.includes(';')) {
+        setGigSearchQuery(queryAfterAt.trim());
+        setShowGigSuggestions(true);
+        setSelectedSuggestionIndex(0);
+        return;
+      }
+    }
+
+    setShowGigSuggestions(false);
+  };
+
+  const handleSelectGig = (gig) => {
+    setAttachedGig(gig);
+    setShowGigSuggestions(false);
+
+    // Replace @query with @GigTitle
+    if (inputRef.current) {
+      const cursorPos = inputRef.current.selectionStart || inputText.length;
+      const textBeforeCursor = inputText.slice(0, cursorPos);
+      const textAfterCursor = inputText.slice(cursorPos);
+      const lastAtIndex = textBeforeCursor.lastIndexOf('@');
+
+      if (lastAtIndex !== -1) {
+        const newText = textBeforeCursor.slice(0, lastAtIndex) + `@${gig.title} ` + textAfterCursor;
+        setInputText(newText);
+      } else {
+        setInputText(prev => `${prev} @${gig.title} `);
+      }
+    } else {
+      setInputText(prev => `${prev} @${gig.title} `);
+    }
+
+    setTimeout(() => {
+      inputRef.current?.focus();
+    }, 50);
+  };
+
+  const handleInputKeyDown = (e) => {
+    if (showGigSuggestions && filteredGigs.length > 0) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setSelectedSuggestionIndex(prev => (prev + 1) % filteredGigs.length);
+        return;
+      }
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setSelectedSuggestionIndex(prev => (prev - 1 + filteredGigs.length) % filteredGigs.length);
+        return;
+      }
+      if (e.key === 'Enter' || e.key === 'Tab') {
+        e.preventDefault();
+        handleSelectGig(filteredGigs[selectedSuggestionIndex]);
+        return;
+      }
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setShowGigSuggestions(false);
+        return;
+      }
+    }
+
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
+  const effectiveGig = attachedGig || activeCampaign;
+
   const quickPills = [
     { 
-      label: "Optimize Campaign ROI", 
+      label: `ROI for ${effectiveGig?.title ? `"${effectiveGig.title.slice(0, 20)}..."` : 'Gig'}`, 
       icon: Zap,
-      prompt: `How should I allocate my $${((activeCampaign.budgetCents || 250000) / 100).toLocaleString()} budget between dedicated video vs YouTube Shorts?` 
+      prompt: `How should I allocate my $${((effectiveGig?.budgetCents || 250000) / 100).toLocaleString()} budget between dedicated video vs YouTube Shorts for @${effectiveGig?.title}?` 
+    },
+    { 
+      label: `Best Fit for ${effectiveGig?.category || 'Tech'}`, 
+      icon: Target,
+      prompt: `Which verified creators in our database best fit our gig @${effectiveGig?.title} (${formatCents(effectiveGig?.budgetCents)})?` 
     },
     { 
       label: `Compare ${c1.name.split(' ')[0]} vs ${c2.name.split(' ')[0]}`, 
       icon: BarChart3,
-      prompt: `Compare ${c1.name} (${c1.handle}) and ${c2.name} (${c2.handle}) — who drives higher technical conversion?` 
-    },
-    { 
-      label: `Best Fit for ${activeCampaign.category || 'Tech'}`, 
-      icon: Target,
-      prompt: `Which verified creators in our database best fit our campaign budget and category?` 
+      prompt: `Compare ${c1.name} (${c1.handle}) and ${c2.name} (${c2.handle}) for @${effectiveGig?.title} — who drives higher conversion?` 
     },
     { 
       label: "High-Retention Hooks", 
       icon: Lightbulb,
-      prompt: `Draft 3 catchy 5-second video hooks tailored for ${activeCampaign.title}.` 
+      prompt: `Draft 3 catchy 5-second video hooks tailored for @${effectiveGig?.title}.` 
     }
   ];
 
@@ -74,18 +209,50 @@ export function NefraSenseAdvisor({
       return;
     }
 
+    // Determine targeted gig:
+    let targetedGig = attachedGig;
+    if (!targetedGig && campaigns.length > 0) {
+      // Check if text has @GigName or matches any campaign title
+      for (const camp of campaigns) {
+        if (
+          text.toLowerCase().includes(`@${camp.title.toLowerCase()}`) ||
+          text.toLowerCase().includes(camp.title.toLowerCase())
+        ) {
+          targetedGig = camp;
+          break;
+        }
+      }
+    }
+
+    const finalGig = targetedGig || activeCampaign;
+
     if (onDeductBrandCredits) {
       onDeductBrandCredits(10, `NefraSense AI - "${text.slice(0, 30)}..."`);
     }
 
-    const userMsg = { role: 'user', text };
+    const userMsg = { 
+      role: 'user', 
+      text,
+      attachedGig: targetedGig ? {
+        id: targetedGig.id,
+        title: targetedGig.title,
+        budgetCents: targetedGig.budgetCents,
+        category: targetedGig.category,
+        modality: targetedGig.modality
+      } : null
+    };
+
     setMessages(prev => [...prev, userMsg]);
     setInputText('');
+    setShowGigSuggestions(false);
     setIsThinking(true);
 
     try {
-      const reply = await askNefraSense(text, activeCampaign, { creators });
-      setMessages(prev => [...prev, { role: 'assistant', text: reply }]);
+      const reply = await askNefraSense(text, finalGig, { 
+        creators,
+        isTaggedGig: Boolean(targetedGig)
+      });
+      setMessages(prev => [...prev, { role: 'assistant', text: reply, attachedGig: userMsg.attachedGig }]);
     } catch (e) {
       setMessages(prev => [...prev, { role: 'assistant', text: "Error connecting to AI advisor. Please try again." }]);
     } finally {
@@ -115,7 +282,7 @@ export function NefraSenseAdvisor({
             </Badge>
           </div>
           <p className="text-xs text-[#a1a1aa] mt-1">
-            Real-time influencer marketing strategist grounded on live Cloud Firestore creator telemetry, protected by zero-defamation ethical guardrails.
+            Real-time influencer marketing strategist grounded on live Cloud Firestore creator telemetry. Type <strong>@</strong> in the chat to select and discuss specific gigs!
           </p>
         </div>
 
@@ -152,10 +319,6 @@ export function NefraSenseAdvisor({
               <strong className="text-[#fafafa]">Creator Reputation & Fame Guardrails Active:</strong> All advisor outputs are strictly filtered under a Zero-Defamation policy. Comparisons celebrate each creator's strengths, target audience demographics, and delivery formats without derogatory framing or language disparagement.
             </span>
           </div>
-
-          <p className="text-[11px] text-[#a1a1aa] my-3 leading-relaxed">
-            These verified creator records are actively injected into the Vertex AI prompt context window, grounding all recommendations in genuine YouTube performance metrics, 30-day views, multimodal AI quality scores, and starting rate cards.
-          </p>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 max-h-56 overflow-y-auto pr-1">
             {validCreators.map((creator) => (
@@ -200,7 +363,7 @@ export function NefraSenseAdvisor({
       </div>
 
       {/* Chat Area */}
-      <Card className="flex flex-col h-[520px] p-0 overflow-hidden relative">
+      <Card className="flex flex-col h-[540px] p-0 overflow-hidden relative">
         {/* Subtle Watermark Logo in Background */}
         <div 
           className="absolute right-6 bottom-16 pointer-events-none select-none z-0 opacity-[0.06] transition-opacity duration-300"
@@ -213,6 +376,7 @@ export function NefraSenseAdvisor({
           />
         </div>
 
+        {/* Message Stream */}
         <div className="flex-1 p-4 overflow-y-auto space-y-4 relative z-10">
           {messages.map((msg, idx) => {
             const isUser = msg.role === 'user';
@@ -232,6 +396,21 @@ export function NefraSenseAdvisor({
                     ? 'bg-[#18181b] border border-[#27272a] text-[#fafafa]' 
                     : 'bg-[#000000] border border-[#27272a] text-[#d4d4d8]'
                 }`}>
+                  {/* Tagged Gig Header Pill if message targets a gig */}
+                  {msg.attachedGig && (
+                    <div className="mb-2 p-2 rounded-lg bg-[#3b82f6]/15 border border-[#3b82f6]/30 text-xs text-[#38bdf8] flex items-center justify-between gap-2">
+                      <div className="flex items-center space-x-1.5 truncate">
+                        <Briefcase size={12} className="shrink-0 text-[#38bdf8]" />
+                        <span className="font-semibold text-[11px] text-[#fafafa] truncate">
+                          Referencing Gig: {msg.attachedGig.title}
+                        </span>
+                      </div>
+                      <span className="text-[10px] text-[#93c5fd] shrink-0 font-medium">
+                        {formatCents(msg.attachedGig.budgetCents)}
+                      </span>
+                    </div>
+                  )}
+
                   <p className="whitespace-pre-line">{msg.text}</p>
 
                   {!isUser && (
@@ -260,26 +439,108 @@ export function NefraSenseAdvisor({
           )}
         </div>
 
-        {/* Input Footer */}
-        <div className="p-3 border-t border-[#27272a] bg-[#09090b] flex items-center space-x-2">
-          <input
-            type="text"
-            value={inputText}
-            onChange={(e) => setInputText(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-            placeholder="Ask anything about campaign strategy, budget splits, or creator comparisons..."
-            className="flex-1 h-9 px-3 rounded-lg bg-[#000000] border border-[#27272a] text-xs text-[#fafafa] placeholder:text-[#52525b] focus:outline-none focus:border-[#e11d48]"
-          />
-          <Button
-            size="sm"
-            onClick={() => handleSend()}
-            disabled={!inputText.trim() || isThinking}
-            className="space-x-1.5"
-            title={`Send query (10 credits • ${brandCredits} remaining)`}
+        {/* @ Gig Auto-Suggest Dropdown */}
+        {showGigSuggestions && filteredGigs.length > 0 && (
+          <div
+            ref={suggestionsRef}
+            className="absolute left-3 right-3 bottom-16 bg-[#121215] border border-[#3b82f6]/40 rounded-xl shadow-2xl p-2 z-50 max-h-56 overflow-y-auto space-y-1 backdrop-blur-md animate-in fade-in slide-in-from-bottom-2 duration-150"
           >
-            <Send size={14} />
-            <span>Send (10 credits • {brandCredits} remaining)</span>
-          </Button>
+            <div className="flex items-center justify-between px-2 py-1 text-[10px] text-[#71717a] border-b border-[#27272a] mb-1">
+              <span className="flex items-center gap-1 font-semibold text-[#38bdf8]">
+                <Briefcase size={11} /> Select Gig Context (@mention)
+              </span>
+              <span>Use ↑↓ keys + Enter</span>
+            </div>
+            {filteredGigs.map((gig, idx) => (
+              <div
+                key={gig.id || idx}
+                onClick={() => handleSelectGig(gig)}
+                className={`px-2.5 py-2 rounded-lg cursor-pointer flex items-center justify-between transition-colors ${
+                  idx === selectedSuggestionIndex 
+                    ? 'bg-[#3b82f6]/20 border border-[#3b82f6]/40 text-[#fafafa]' 
+                    : 'hover:bg-[#18181b] text-[#a1a1aa] border border-transparent'
+                }`}
+              >
+                <div className="flex items-center space-x-2.5 min-w-0">
+                  <div className="p-1.5 rounded-md bg-[#27272a] text-[#38bdf8] shrink-0">
+                    <Briefcase size={13} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold text-[#fafafa] truncate">{gig.title}</p>
+                    <p className="text-[10px] text-[#71717a] truncate">{gig.category} • {gig.modality?.toUpperCase()}</p>
+                  </div>
+                </div>
+                <Badge variant="action" className="text-[10px] shrink-0 ml-2">
+                  {formatCents(gig.budgetCents)}
+                </Badge>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Input Footer */}
+        <div className="p-3 border-t border-[#27272a] bg-[#09090b] space-y-2">
+          {/* Active Attached Gig Banner */}
+          {attachedGig && (
+            <div className="flex items-center justify-between px-3 py-1.5 bg-[#3b82f6]/10 border border-[#3b82f6]/30 rounded-lg text-xs text-[#38bdf8] animate-in fade-in">
+              <div className="flex items-center space-x-2 truncate">
+                <span className="text-[#38bdf8] font-bold text-[11px] flex items-center gap-1 shrink-0">
+                  <Briefcase size={12} /> Active Gig Context:
+                </span>
+                <span className="text-[#fafafa] font-semibold text-xs truncate">
+                  {attachedGig.title}
+                </span>
+                <Badge variant="action" className="text-[9px] py-0 px-1.5 shrink-0">
+                  {formatCents(attachedGig.budgetCents)}
+                </Badge>
+              </div>
+              <button
+                type="button"
+                onClick={() => setAttachedGig(null)}
+                className="p-1 text-[#71717a] hover:text-[#ef4444] transition-colors shrink-0"
+                title="Remove attached gig context"
+              >
+                <X size={13} />
+              </button>
+            </div>
+          )}
+
+          <div className="flex items-center space-x-2">
+            {/* Quick @ Tag Gig Button */}
+            <button
+              type="button"
+              onClick={() => {
+                setShowGigSuggestions(true);
+                setGigSearchQuery('');
+                inputRef.current?.focus();
+              }}
+              className="h-9 px-2.5 rounded-lg bg-[#18181b] border border-[#27272a] text-[#38bdf8] hover:border-[#3b82f6] text-xs font-bold transition-colors flex items-center gap-1 shrink-0 cursor-pointer"
+              title="Tag a gig with @"
+            >
+              <AtSign size={13} />
+              <span className="hidden sm:inline text-[11px] font-normal text-[#a1a1aa]">Gig</span>
+            </button>
+
+            <input
+              ref={inputRef}
+              type="text"
+              value={inputText}
+              onChange={handleInputChange}
+              onKeyDown={handleInputKeyDown}
+              placeholder="Ask anything or type '@' to select a specific gig..."
+              className="flex-1 h-9 px-3 rounded-lg bg-[#000000] border border-[#27272a] text-xs text-[#fafafa] placeholder:text-[#52525b] focus:outline-none focus:border-[#e11d48]"
+            />
+            <Button
+              size="sm"
+              onClick={() => handleSend()}
+              disabled={!inputText.trim() || isThinking}
+              className="space-x-1.5 shrink-0"
+              title={`Send query (10 credits • ${brandCredits} remaining)`}
+            >
+              <Send size={14} />
+              <span className="hidden sm:inline">Send (10 credits)</span>
+            </Button>
+          </div>
         </div>
       </Card>
     </div>

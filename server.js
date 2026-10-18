@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { handleYouTubeConnect, handleYouTubeDisconnect, handleGetCreator } from './src/server/apiHandler.js';
+import { hackathonAiShieldMiddleware, getHackathonShieldMetrics } from './src/server/hackathonShield.js';
 
 dotenv.config();
 
@@ -235,8 +236,8 @@ app.post('/api/vertex/credentials', async (req, res) => {
   }
 });
 
-// Google Cloud Vertex AI generateContent Proxy
-app.post('/api/vertex/generateContent', async (req, res) => {
+// Google Cloud Vertex AI generateContent Proxy (Protected by Hackathon Anti-Abuse Shield)
+app.post('/api/vertex/generateContent', hackathonAiShieldMiddleware, async (req, res) => {
   try {
     const { handleVertexGenerateContent } = await import('./src/server/vertexHandler.js');
     const result = await handleVertexGenerateContent(req.body);
@@ -246,8 +247,8 @@ app.post('/api/vertex/generateContent', async (req, res) => {
   }
 });
 
-// Server-Side AI Image Generation Proxy
-app.post('/api/ai/generateImage', async (req, res) => {
+// Server-Side AI Image Generation Proxy (Protected by Hackathon Anti-Abuse Shield)
+app.post('/api/ai/generateImage', hackathonAiShieldMiddleware, async (req, res) => {
   try {
     const { handleGenerateImage } = await import('./src/server/imageHandler.js');
     const result = await handleGenerateImage(req.body);
@@ -255,6 +256,15 @@ app.post('/api/ai/generateImage', async (req, res) => {
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
+});
+
+// Hackathon Shield Real-time Status & Metrics
+app.get('/api/shield/metrics', (req, res) => {
+  return res.json({
+    success: true,
+    metrics: getHackathonShieldMetrics(),
+    timestamp: new Date().toISOString()
+  });
 });
 
 

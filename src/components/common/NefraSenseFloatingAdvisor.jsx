@@ -32,11 +32,14 @@ import {
   Minus,
   Maximize2,
   Clapperboard,
-  DollarSign,
-  Target,
   Scale,
-  Lock
+  Lock,
+  Briefcase,
+  AtSign,
+  DollarSign,
+  Target
 } from 'lucide-react';
+import { formatCents } from '@/lib/utils';
 
 /* ───────────────────────────── 3D Dotted Canvas Orb ───────────────────────────── */
 const RINGS = 16, TAU = Math.PI * 2, CANVAS = 220, ORB_R = 66;
@@ -213,6 +216,12 @@ export function NefraSenseFloatingAdvisor({
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [showHistoryView, setShowHistoryView] = useState(false);
   const [historyFilter, setHistoryFilter] = useState('all'); // 'all' | 'creator' | 'brand'
+
+  // @ Gig Auto-Suggest State for Brands
+  const [attachedGig, setAttachedGig] = useState(null);
+  const [showGigSuggestions, setShowGigSuggestions] = useState(false);
+  const [gigSearchQuery, setGigSearchQuery] = useState('');
+  const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(0);
 
   // Dragging & Minimize State - Prevents blocking normal UI and input actions
   const [position, setPosition] = useState(null); // { x: number, y: number } in px from viewport top-left
@@ -437,12 +446,27 @@ export function NefraSenseFloatingAdvisor({
           { channelStats: activeCreator?.youtube || {} }
         );
       } else {
-        const currentCampaign = activeCampaign || campaigns[0] || {
+        let targetCampaign = attachedGig;
+        if (!targetCampaign && campaigns.length > 0) {
+          for (const camp of campaigns) {
+            if (
+              q.toLowerCase().includes(`@${camp.title.toLowerCase()}`) ||
+              q.toLowerCase().includes(camp.title.toLowerCase())
+            ) {
+              targetCampaign = camp;
+              break;
+            }
+          }
+        }
+        const currentCampaign = targetCampaign || activeCampaign || campaigns[0] || {
           title: 'Q2 Tech Product Launch',
           budgetCents: 250000,
           category: 'Tech'
         };
-        result = await askNefraSense(q, currentCampaign, { creators });
+        result = await askNefraSense(q, currentCampaign, { 
+          creators,
+          isTaggedGig: Boolean(targetCampaign)
+        });
       }
 
       setAnswer(result);
@@ -808,59 +832,216 @@ export function NefraSenseFloatingAdvisor({
                 <form 
                   onSubmit={(e) => {
                     e.preventDefault();
+                    setShowGigSuggestions(false);
                     handleExecuteSearch();
                   }}
-                  className="p-4 sm:p-5 flex items-center gap-3 border-b border-white/[0.06] shrink-0 relative z-10"
+                  className="p-4 sm:p-5 flex flex-col gap-2 border-b border-white/[0.06] shrink-0 relative z-10"
                 >
-                  <div className={`p-2 rounded-xl shrink-0 ${
-                    isCreator ? 'text-rose-400' : 'text-[#1ed760]'
-                  }`}>
-                    <Search className="w-5 h-5 sm:w-6 sm:h-6" />
-                  </div>
-
-                  <input
-                    ref={inputRef}
-                    type="text"
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    placeholder={isCreator ? "Ask anything about YouTube trends, tags, or retention hooks…" : "Ask anything about creator ROI, budget splits, or escrow…"}
-                    disabled={status === 'thinking'}
-                    className="w-full bg-transparent text-white placeholder:text-zinc-500 text-sm sm:text-base font-medium outline-none border-none focus:ring-0"
-                  />
-
-                  {query.trim().length > 0 && status !== 'thinking' && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setQuery('');
-                        inputRef.current?.focus();
-                      }}
-                      className="p-1.5 text-zinc-400 hover:text-white cursor-pointer transition-colors shrink-0"
-                      title="Clear input"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
+                  {/* Attached Gig Context Tag for Brands */}
+                  {!isCreator && attachedGig && (
+                    <div className="flex items-center justify-between px-3 py-1 bg-[#1db954]/15 border border-[#1db954]/30 rounded-lg text-xs text-[#1ed760] mb-1">
+                      <div className="flex items-center space-x-1.5 truncate">
+                        <Briefcase className="w-3.5 h-3.5 shrink-0 text-[#1ed760]" />
+                        <span className="font-semibold text-[11px] text-white truncate">
+                          Referencing Gig: {attachedGig.title}
+                        </span>
+                        <span className="text-[10px] text-zinc-400">
+                          ({formatCents(attachedGig.budgetCents)})
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setAttachedGig(null)}
+                        className="p-0.5 text-zinc-400 hover:text-white transition-colors ml-2"
+                        title="Remove gig reference"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   )}
 
-                  <span className="text-[11px] font-medium text-zinc-400 hidden sm:inline-block shrink-0">
-                    Costs 2 credits • <span className={currentCredits < 2 ? 'text-amber-400 font-bold' : 'text-zinc-200 font-semibold'}>{currentCredits} remaining</span>
-                  </span>
+                  <div className="flex items-center gap-3 w-full relative">
+                    <div className={`p-2 rounded-xl shrink-0 ${
+                      isCreator ? 'text-rose-400' : 'text-[#1ed760]'
+                    }`}>
+                      <Search className="w-5 h-5 sm:w-6 sm:h-6" />
+                    </div>
 
-                  <button
-                    type="submit"
-                    disabled={!query.trim() || status === 'thinking'}
-                    className={`p-2.5 rounded-xl flex items-center justify-center shrink-0 transition-all cursor-pointer ${
-                      query.trim() && status !== 'thinking'
-                        ? isCreator
-                          ? 'bg-rose-600 text-white hover:bg-rose-500 shadow-md shadow-rose-900/40'
-                          : 'bg-[#1db954] text-black hover:bg-[#1ed760] shadow-md shadow-[#1db954]/30'
-                        : 'bg-zinc-900 text-zinc-600 cursor-not-allowed'
-                    }`}
-                    title={`Send query (Costs 2 credits • ${currentCredits} remaining)`}
-                    aria-label={`Send query (Costs 2 credits • ${currentCredits} remaining)`}
-                  >
-                    <Send className="w-4 h-4" />
-                  </button>
+                    {!isCreator && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowGigSuggestions(true);
+                          setGigSearchQuery('');
+                          inputRef.current?.focus();
+                        }}
+                        className="p-1.5 rounded-lg bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-[#1ed760] text-xs font-bold transition-colors flex items-center gap-0.5 shrink-0 cursor-pointer"
+                        title="Tag a gig with @"
+                      >
+                        <AtSign className="w-3.5 h-3.5" />
+                        <span className="hidden sm:inline text-[10px] font-normal text-zinc-400">Gig</span>
+                      </button>
+                    )}
+
+                    <input
+                      ref={inputRef}
+                      type="text"
+                      value={query}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        const cursorPos = e.target.selectionStart || 0;
+                        setQuery(val);
+
+                        if (!isCreator) {
+                          const textBeforeCursor = val.slice(0, cursorPos);
+                          const lastAtIndex = textBeforeCursor.lastIndexOf('@');
+                          if (lastAtIndex !== -1) {
+                            const queryAfterAt = textBeforeCursor.slice(lastAtIndex + 1);
+                            if (!queryAfterAt.includes('\n') && !queryAfterAt.includes(';')) {
+                              setGigSearchQuery(queryAfterAt.trim());
+                              setShowGigSuggestions(true);
+                              setSelectedSuggestionIndex(0);
+                              return;
+                            }
+                          }
+                          setShowGigSuggestions(false);
+                        }
+                      }}
+                      onKeyDown={(e) => {
+                        if (!isCreator && showGigSuggestions) {
+                          const matchingGigs = (!campaigns || campaigns.length === 0) ? [] : (
+                            !gigSearchQuery ? campaigns : campaigns.filter(c => 
+                              c.title?.toLowerCase().includes(gigSearchQuery.toLowerCase()) ||
+                              c.category?.toLowerCase().includes(gigSearchQuery.toLowerCase())
+                            )
+                          );
+
+                          if (matchingGigs.length > 0) {
+                            if (e.key === 'ArrowDown') {
+                              e.preventDefault();
+                              setSelectedSuggestionIndex(prev => (prev + 1) % matchingGigs.length);
+                              return;
+                            }
+                            if (e.key === 'ArrowUp') {
+                              e.preventDefault();
+                              setSelectedSuggestionIndex(prev => (prev - 1 + matchingGigs.length) % matchingGigs.length);
+                              return;
+                            }
+                            if (e.key === 'Enter' || e.key === 'Tab') {
+                              e.preventDefault();
+                              const selected = matchingGigs[selectedSuggestionIndex];
+                              setAttachedGig(selected);
+                              setShowGigSuggestions(false);
+                              const cursorPos = inputRef.current?.selectionStart || query.length;
+                              const textBefore = query.slice(0, cursorPos);
+                              const textAfter = query.slice(cursorPos);
+                              const lastAt = textBefore.lastIndexOf('@');
+                              if (lastAt !== -1) {
+                                setQuery(textBefore.slice(0, lastAt) + `@${selected.title} ` + textAfter);
+                              } else {
+                                setQuery(prev => `${prev} @${selected.title} `);
+                              }
+                              return;
+                            }
+                            if (e.key === 'Escape') {
+                              e.preventDefault();
+                              setShowGigSuggestions(false);
+                              return;
+                            }
+                          }
+                        }
+                      }}
+                      placeholder={isCreator ? "Ask anything about YouTube trends, tags, or retention hooks…" : "Ask anything or type '@' to select a specific gig…"}
+                      disabled={status === 'thinking'}
+                      className="w-full bg-transparent text-white placeholder:text-zinc-500 text-sm sm:text-base font-medium outline-none border-none focus:ring-0"
+                    />
+
+                    {query.trim().length > 0 && status !== 'thinking' && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setQuery('');
+                          inputRef.current?.focus();
+                        }}
+                        className="p-1.5 text-zinc-400 hover:text-white cursor-pointer transition-colors shrink-0"
+                        title="Clear input"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    )}
+
+                    <span className="text-[11px] font-medium text-zinc-400 hidden sm:inline-block shrink-0">
+                      Costs 2 credits • <span className={currentCredits < 2 ? 'text-amber-400 font-bold' : 'text-zinc-200 font-semibold'}>{currentCredits} remaining</span>
+                    </span>
+
+                    <button
+                      type="submit"
+                      disabled={!query.trim() || status === 'thinking'}
+                      className={`p-2.5 rounded-xl flex items-center justify-center shrink-0 transition-all cursor-pointer ${
+                        query.trim() && status !== 'thinking'
+                          ? isCreator
+                            ? 'bg-rose-600 text-white hover:bg-rose-500 shadow-md shadow-rose-900/40'
+                            : 'bg-[#1db954] text-black hover:bg-[#1ed760] shadow-md shadow-[#1db954]/30'
+                          : 'bg-zinc-900 text-zinc-600 cursor-not-allowed'
+                      }`}
+                      title={`Send query (Costs 2 credits • ${currentCredits} remaining)`}
+                      aria-label={`Send query (Costs 2 credits • ${currentCredits} remaining)`}
+                    >
+                      <Send className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  {/* @ Gig Auto-Suggest Dropdown for Floating Advisor */}
+                  {!isCreator && showGigSuggestions && (
+                    <div className="absolute left-4 right-4 top-full mt-1 bg-zinc-950 border border-zinc-800 rounded-xl shadow-2xl p-2 z-50 max-h-52 overflow-y-auto space-y-1">
+                      <div className="flex items-center justify-between px-2 py-1 text-[10px] text-zinc-500 border-b border-zinc-800/80 mb-1">
+                        <span className="flex items-center gap-1 font-semibold text-[#1ed760]">
+                          <Briefcase className="w-3 h-3" /> Select Gig Context (@mention)
+                        </span>
+                        <span>Use ↑↓ keys + Enter</span>
+                      </div>
+                      {((!campaigns || campaigns.length === 0) ? [] : (
+                        !gigSearchQuery ? campaigns : campaigns.filter(c => 
+                          c.title?.toLowerCase().includes(gigSearchQuery.toLowerCase()) ||
+                          c.category?.toLowerCase().includes(gigSearchQuery.toLowerCase())
+                        )
+                      )).map((gig, idx) => (
+                        <div
+                          key={gig.id || idx}
+                          onClick={() => {
+                            setAttachedGig(gig);
+                            setShowGigSuggestions(false);
+                            const cursorPos = inputRef.current?.selectionStart || query.length;
+                            const textBefore = query.slice(0, cursorPos);
+                            const textAfter = query.slice(cursorPos);
+                            const lastAt = textBefore.lastIndexOf('@');
+                            if (lastAt !== -1) {
+                              setQuery(textBefore.slice(0, lastAt) + `@${gig.title} ` + textAfter);
+                            } else {
+                              setQuery(prev => `${prev} @${gig.title} `);
+                            }
+                            inputRef.current?.focus();
+                          }}
+                          className={`px-2.5 py-1.5 rounded-lg cursor-pointer flex items-center justify-between transition-colors ${
+                            idx === selectedSuggestionIndex 
+                              ? 'bg-[#1db954]/20 border border-[#1db954]/40 text-white' 
+                              : 'hover:bg-zinc-900 text-zinc-300 border border-transparent'
+                          }`}
+                        >
+                          <div className="flex items-center space-x-2 truncate">
+                            <Briefcase className="w-3.5 h-3.5 text-[#1ed760] shrink-0" />
+                            <div className="truncate text-xs">
+                              <span className="font-semibold text-white truncate block">{gig.title}</span>
+                              <span className="text-[10px] text-zinc-400">{gig.category}</span>
+                            </div>
+                          </div>
+                          <span className="text-[10px] font-semibold text-[#1ed760] bg-[#1db954]/10 px-2 py-0.5 rounded shrink-0 ml-2">
+                            {formatCents(gig.budgetCents)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </form>
 
                 {/* State Area: Thinking, Answered, or Idle Suggestions */}

@@ -125,10 +125,16 @@ export function AIContentCreator({
   // Navigation viewMode: 'list' (Opening screen) | 'wizard' (Guided creation) | 'post_detail' (Final review & sharing)
   const [viewMode, setViewMode] = useState('list');
 
-  // Posts State (Persisted in localStorage)
+  // Posts State (Persisted in user-partitioned storage)
+  const getStorageKey = () => {
+    const uid = (typeof window !== 'undefined' ? localStorage.getItem('nefra_active_uid') : null) || 'guest';
+    return `nefra_created_social_posts_${uid}`;
+  };
+
   const [createdPosts, setCreatedPosts] = useState(() => {
     try {
-      const saved = localStorage.getItem('nefra_created_social_posts');
+      const key = getStorageKey();
+      const saved = localStorage.getItem(key);
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) return parsed;
@@ -137,10 +143,11 @@ export function AIContentCreator({
     return DEFAULT_INITIAL_POSTS;
   });
 
-  // Sync to localStorage
+  // Sync to user-partitioned storage
   useEffect(() => {
     try {
-      localStorage.setItem('nefra_created_social_posts', JSON.stringify(createdPosts));
+      const key = getStorageKey();
+      localStorage.setItem(key, JSON.stringify(createdPosts));
     } catch (e) {}
   }, [createdPosts]);
 

@@ -4,6 +4,7 @@ import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
 import { Dialog } from '../ui/Dialog';
 import { formatCents } from '../../lib/utils';
+import { AICreatorMatchModal } from './AICreatorMatchModal';
 import { 
   Briefcase, 
   PlusCircle, 
@@ -27,13 +28,17 @@ export function BrandCampaignsManager({
   campaigns = [],
   bids = [],
   creators = [],
+  rateCards = [],
   onNavigate,
   onAcceptBid,
-  onOpenChat
+  onOpenChat,
+  onSelectCreator,
+  onHirePackage
 }) {
   const [activeTab, setActiveTab] = useState('all');
   const [reviewingCampaign, setReviewingCampaign] = useState(null);
   const [acceptedBidId, setAcceptedBidId] = useState(null);
+  const [aiMatchCampaign, setAiMatchCampaign] = useState(null);
 
   // Filter campaigns
   const filteredCampaigns = campaigns.filter(camp => {
@@ -249,8 +254,9 @@ export function BrandCampaignsManager({
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => onNavigate && onNavigate('creators')}
-                    className="border-[#27272a] text-xs text-[#fafafa] hover:border-[#e11d48] cursor-pointer"
+                    onClick={() => setAiMatchCampaign(camp)}
+                    className="border-[#27272a] text-xs text-[#fafafa] hover:border-[#e11d48] hover:bg-[#e11d48]/10 cursor-pointer space-x-1.5"
+                    title="Run Google Vertex AI Matchmaker for this gig"
                   >
                     <Sparkles size={13} className="text-[#e11d48]" />
                     <span>AI Creator Match</span>
@@ -393,7 +399,19 @@ export function BrandCampaignsManager({
                 <p className="text-[11px] text-[#71717a] max-w-sm mx-auto">
                   This campaign is active in the directory. You can invite verified creators directly or run NefraSense Advisor to scout candidate matches.
                 </p>
-                <div className="pt-2 flex justify-center space-x-2">
+                <div className="pt-2 flex justify-center space-x-2 flex-wrap gap-2">
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      const c = reviewingCampaign;
+                      setReviewingCampaign(null);
+                      setAiMatchCampaign(c);
+                    }}
+                    className="bg-[#e11d48] hover:bg-[#be123c] text-white text-xs cursor-pointer space-x-1"
+                  >
+                    <Sparkles size={13} />
+                    <span>AI Creator Match</span>
+                  </Button>
                   <Button
                     size="sm"
                     variant="outline"
@@ -408,11 +426,12 @@ export function BrandCampaignsManager({
                   </Button>
                   <Button
                     size="sm"
+                    variant="outline"
                     onClick={() => {
                       setReviewingCampaign(null);
                       if (onNavigate) onNavigate('advisor');
                     }}
-                    className="text-xs cursor-pointer"
+                    className="border-[#27272a] text-xs cursor-pointer"
                   >
                     <MessageSquare size={13} className="mr-1" />
                     <span>NefraSense Strategy</span>
@@ -422,6 +441,20 @@ export function BrandCampaignsManager({
             )}
           </div>
         </Dialog>
+      )}
+
+      {/* AI Creator Match Modal for Specific Gig */}
+      {aiMatchCampaign && (
+        <AICreatorMatchModal
+          campaign={aiMatchCampaign}
+          creators={creators}
+          rateCards={rateCards}
+          isOpen={Boolean(aiMatchCampaign)}
+          onClose={() => setAiMatchCampaign(null)}
+          onOpenChat={onOpenChat}
+          onSelectCreator={onSelectCreator}
+          onHirePackage={onHirePackage}
+        />
       )}
     </div>
   );

@@ -15,20 +15,26 @@ import {
   MessageCircle, 
   ChevronDown,
   UserCheck,
-  CheckCircle2
+  CheckCircle2,
+  Sparkles
 } from 'lucide-react';
+import { AICreatorMatchModal } from './AICreatorMatchModal';
 
 export function BrandDashboard({
   campaigns = [],
   contracts = [],
   bids = [],
   creators = [],
+  rateCards = [],
   brandCredits = 250,
   onNavigate,
-  onOpenChat
+  onOpenChat,
+  onSelectCreator,
+  onHirePackage
 }) {
   const [isCreatorPickerOpen, setIsCreatorPickerOpen] = useState(false);
   const [creatorSearchQuery, setCreatorSearchQuery] = useState('');
+  const [aiMatchCampaign, setAiMatchCampaign] = useState(null);
 
   const activeContracts = contracts.filter(c => c.state !== 'released' && c.state !== 'refunded');
   const totalEscrowHeldCents = activeContracts.reduce((sum, c) => sum + (c.amountCents || 0), 0);
@@ -276,8 +282,18 @@ export function BrandDashboard({
                 <p className="text-xs text-[#a1a1aa] mt-0.5">{camp.category} • Budget: {formatCents(camp.budgetCents)}</p>
               </div>
 
-              <div className="flex items-center space-x-3">
-                <span className="text-xs text-[#71717a]">{camp.bidsCount || 0} bids received</span>
+              <div className="flex items-center space-x-2">
+                <span className="text-xs text-[#71717a] hidden sm:inline">{camp.bidsCount || 0} bids received</span>
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  onClick={() => setAiMatchCampaign(camp)}
+                  className="border-[#27272a] text-xs text-[#fafafa] hover:border-[#e11d48] hover:bg-[#e11d48]/10 cursor-pointer space-x-1"
+                  title="Run Google Vertex AI Matchmaker for this gig"
+                >
+                  <Sparkles size={12} className="text-[#e11d48]" />
+                  <span>AI Match</span>
+                </Button>
                 <Button variant="outline" size="sm" onClick={() => onNavigate('campaigns')}>
                   Review proposals
                 </Button>
@@ -358,6 +374,20 @@ export function BrandDashboard({
             </div>
           </div>
         </Dialog>
+      )}
+
+      {/* AI Creator Match Modal for Specific Gig */}
+      {aiMatchCampaign && (
+        <AICreatorMatchModal
+          campaign={aiMatchCampaign}
+          creators={creators}
+          rateCards={rateCards}
+          isOpen={Boolean(aiMatchCampaign)}
+          onClose={() => setAiMatchCampaign(null)}
+          onOpenChat={onOpenChat}
+          onSelectCreator={onSelectCreator}
+          onHirePackage={onHirePackage}
+        />
       )}
     </div>
   );

@@ -4,7 +4,8 @@ import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
 import { DeliverableModal } from './DeliverableModal';
 import { formatCents, formatDate } from '../../lib/utils';
-import { Play, Upload, CheckCircle2, Clock } from 'lucide-react';
+import { Play, Upload, CheckCircle2, Clock, ShieldCheck, FileVideo, Image as ImageIcon, ExternalLink } from 'lucide-react';
+import { formatFileSize } from '../../services/storageService';
 import confetti from 'canvas-confetti';
 
 export function CreatorContracts({
@@ -37,6 +38,10 @@ export function CreatorContracts({
     onTransitionContract(contractId, 'draft_review', {
       actor: 'creator',
       deliverableUrl: data.deliverableUrl,
+      deliverableFiles: data.deliverableFiles,
+      moderationScore: data.moderationScore,
+      moderationDetails: data.moderationDetails,
+      timestampNotes: data.timestampNotes,
       reason: data.reason
     });
     confetti({
@@ -120,19 +125,66 @@ export function CreatorContracts({
               </div>
 
               {/* Deliverable Status & Actions */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-2">
-                <div>
-                  {contract.deliverableUrl ? (
-                    <div className="flex items-center space-x-2 text-xs">
-                      <span className="text-[#a1a1aa]">Submitted Draft:</span>
-                      <a
-                        href={contract.deliverableUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-[#e11d48] hover:underline font-medium inline-flex items-center gap-1"
-                      >
-                        <Play size={12} /> {contract.deliverableUrl}
-                      </a>
+              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 pt-2">
+                <div className="space-y-2 max-w-xl">
+                  {contract.deliverableUrl || (contract.deliverableFiles && contract.deliverableFiles.length > 0) ? (
+                    <div className="space-y-2 text-xs">
+                      {/* Google Content Moderation Badge */}
+                      {contract.moderationScore !== undefined && contract.moderationScore !== null && (
+                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#10b981]/10 border border-[#10b981]/30 text-[#10b981] font-medium text-[11px]">
+                          <ShieldCheck size={13} />
+                          <span>Google Safety Score: <strong>{contract.moderationScore}/100</strong></span>
+                          <span className="text-[#6ee7b7] text-[10px]">({contract.moderationDetails?.safetyGrade || 'Brand Safe'})</span>
+                        </div>
+                      )}
+
+                      {/* YouTube Draft link if present */}
+                      {contract.deliverableUrl && !contract.deliverableUrl.startsWith('blob:') && (
+                        <div className="flex items-center space-x-2 text-xs">
+                          <span className="text-[#a1a1aa]">Review Link:</span>
+                          <a
+                            href={contract.deliverableUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-[#e11d48] hover:underline font-medium inline-flex items-center gap-1 truncate max-w-xs"
+                          >
+                            <Play size={12} /> {contract.deliverableUrl}
+                          </a>
+                        </div>
+                      )}
+
+                      {/* Attached Firebase Files */}
+                      {contract.deliverableFiles && contract.deliverableFiles.length > 0 && (
+                        <div className="space-y-1">
+                          <span className="text-[11px] text-[#71717a] block">Firebase Storage Files ({contract.deliverableFiles.length}):</span>
+                          <div className="flex flex-wrap gap-1.5">
+                            {contract.deliverableFiles.map((f, i) => {
+                              const isVideo = f.type?.includes('video') || f.name?.match(/\.(mp4|mov|webm)$/i);
+                              return (
+                                <a
+                                  key={f.id || i}
+                                  href={f.downloadUrl}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="inline-flex items-center gap-1.5 px-2 py-1 rounded bg-[#18181b] border border-[#27272a] text-[11px] text-[#fafafa] hover:border-[#3f3f46] transition-colors"
+                                >
+                                  {isVideo ? <FileVideo size={12} className="text-[#e11d48]" /> : <ImageIcon size={12} className="text-[#3b82f6]" />}
+                                  <span className="truncate max-w-[150px]">{f.name}</span>
+                                  <span className="text-[10px] text-[#71717a]">({formatFileSize(f.size)})</span>
+                                  <ExternalLink size={10} className="text-[#71717a]" />
+                                </a>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Review Notes */}
+                      {contract.timestampNotes && (
+                        <p className="text-[11px] text-[#a1a1aa] bg-[#18181b] p-2 rounded border border-[#27272a]">
+                          <strong className="text-[#71717a]">Notes:</strong> {contract.timestampNotes}
+                        </p>
+                      )}
                     </div>
                   ) : (
                     <p className="text-xs text-[#71717a]">

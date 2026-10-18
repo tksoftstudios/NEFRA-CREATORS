@@ -23,7 +23,8 @@ import {
   Globe2,
   Check,
   Award,
-  VideoOff
+  VideoOff,
+  Layers
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 

@@ -19,6 +19,7 @@ import confetti from 'canvas-confetti';
 
 import { StripeTopupModal } from '../creator/StripeTopupModal';
 import { SUPPORTED_CURRENCIES } from '../../services/currencyService';
+import { getSessionDiagnostics } from '../../services/sessionSecurityService';
 
 export function TopBar({
   activePortal,
@@ -72,6 +73,7 @@ export function TopBar({
 
   const currentCurr = SUPPORTED_CURRENCIES[preferredCurrency] || SUPPORTED_CURRENCIES.USD;
   const aiScore = activeCreator?.aiScore || activeCreator?.audit?.aiScore || 92;
+  const sessionDiagnostics = getSessionDiagnostics(currentUser);
 
   return (
     <header className="h-14 border-b border-[#27272a] bg-[#000000] px-4 sm:px-6 flex items-center justify-between sticky top-0 z-40 transition-colors">
@@ -280,6 +282,12 @@ export function TopBar({
                   </span>
                 </div>
                 <p className="text-[11px] text-[#71717a] truncate mt-0.5">{currentUser?.email || 'Logged in'}</p>
+                <div className="mt-1.5 flex items-center gap-1.5 px-2 py-0.5 rounded bg-[#18181b] border border-[#27272a] text-[10px] text-emerald-400">
+                  <ShieldCheck size={11} className="text-emerald-400 shrink-0" />
+                  <span className="font-mono">
+                    {currentUser ? 'Google Verified • Limits Uplifted' : `Demo Session: ${sessionDiagnostics.sessionIdSnippet}`}
+                  </span>
+                </div>
               </div>
 
               {/* Balances Quick Breakdown */}

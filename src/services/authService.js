@@ -42,6 +42,12 @@ export function getGoogleAuthProvider() {
   return provider;
 }
 
+import { 
+  bindBrowserSession, 
+  validateSessionIntegrity, 
+  destroyBrowserSession 
+} from './sessionSecurityService';
+
 /**
  * Sign in with Google Popup
  */
@@ -50,11 +56,8 @@ export async function signInWithGoogle() {
   const result = await signInWithPopup(auth, provider);
   const user = result.user;
   
-  // Store UID in localStorage for session hint
-  try {
-    localStorage.setItem('nefra_active_uid', user.uid);
-    localStorage.setItem('nefra_active_email', user.email || '');
-  } catch (e) {}
+  // Bind this user to this isolated browser session
+  bindBrowserSession(user);
 
   return user;
 }
@@ -63,12 +66,7 @@ export async function signInWithGoogle() {
  * Sign out of Google and clear session tokens
  */
 export async function signOutUser() {
-  try {
-    localStorage.removeItem('nefra_active_uid');
-    localStorage.removeItem('nefra_active_email');
-    localStorage.removeItem('nefra_active_role');
-  } catch (e) {}
-  
+  destroyBrowserSession();
   await signOut(auth);
 }
 
@@ -78,20 +76,32 @@ export async function signOutUser() {
 export function subscribeToAuth(callback) {
   return onAuthStateChanged(auth, async (user) => {
     if (user) {
-      try {
-        localStorage.setItem('nefra_active_uid', user.uid);
-        localStorage.setItem('nefra_active_email', user.email || '');
-      } catch (e) {}
+      // Validate and bind session to this browser window
+      validateSessionIntegrity(user);
+      bindBrowserSession(user);
       
-      // Fetch user profile from Firestore
-      const profile = await getUserProfile(user.uid);
+      // Fetch user profile from Firestore or initialize new Google evaluator profile
+      let profile = await getUserProfile(user.uid);
+      if (!profile) {
+        profile = {
+          uid: user.uid,
+          email: user.email,
+          displayName: user.displayName || 'Google Evaluator',
+          photoURL: user.photoURL || '',
+          role: 'creator',
+          credits: 50,
+          creatorCredits: 50,
+          brandCredits: 250,
+          onboardingCompleted: false,
+          isVerifiedGoogleUser: true,
+          limitsLifted: true,
+          createdAt: new Date().toISOString()
+        };
+        await saveUserProfile(user.uid, profile);
+      }
       callback(user, profile);
     } else {
-      try {
-        localStorage.removeItem('nefra_active_uid');
-        localStorage.removeItem('nefra_active_email');
-        localStorage.removeItem('nefra_active_role');
-      } catch (e) {}
+      destroyBrowserSession();
       callback(null, null);
     }
   });

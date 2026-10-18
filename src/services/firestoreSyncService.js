@@ -253,14 +253,10 @@ export function subscribeToConversationsFromFirestore(onUpdate) {
 export function subscribeToTransactions(userId, role, onUpdate) {
   if (!db) return () => {};
   try {
-    const targetId = userId || (role === 'brand' ? 'brand_01' : 'creator_01');
-    const validIds = [targetId];
-    if (role === 'brand') {
-      if (!validIds.includes('brand_01')) validIds.push('brand_01');
-      if (!validIds.includes('brand_acme')) validIds.push('brand_acme');
-    } else {
-      if (!validIds.includes('creator_01')) validIds.push('creator_01');
-    }
+    const isRealUser = userId && userId !== 'brand_01' && userId !== 'creator_01';
+    const validIds = isRealUser 
+      ? [userId] 
+      : (role === 'brand' ? ['brand_01', 'brand_acme'] : ['creator_01']);
 
     const q = query(
       collection(db, 'transactions'),
@@ -387,24 +383,6 @@ export async function recordEscrowPaymentInFirestore({
 
     await addDoc(collection(db, 'transactions'), brandTx);
     await addDoc(collection(db, 'transactions'), creatorTx);
-
-    // Also mirror to demo IDs so that multi-tab / unauthenticated testing immediately shows in wallet ledger
-    if (brandOrgId && brandOrgId !== 'brand_01') {
-      try {
-        await addDoc(collection(db, 'transactions'), {
-          ...brandTx,
-          userId: 'brand_01'
-        });
-      } catch (e) {}
-    }
-    if (creatorId && creatorId !== 'creator_01') {
-      try {
-        await addDoc(collection(db, 'transactions'), {
-          ...creatorTx,
-          userId: 'creator_01'
-        });
-      } catch (e) {}
-    }
 
     return true;
   } catch (err) {

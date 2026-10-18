@@ -85,6 +85,10 @@ export function transitionContract(contract, nextState, metadata = {}) {
     actor: metadata.actor || 'system',
     reason: metadata.reason || '',
     deliverableUrl: metadata.deliverableUrl || null,
+    deliverableFiles: metadata.deliverableFiles || null,
+    moderationScore: metadata.moderationScore !== undefined ? metadata.moderationScore : null,
+    moderationDetails: metadata.moderationDetails || null,
+    timestampNotes: metadata.timestampNotes || null,
     timestamp: new Date().toISOString()
   };
 
@@ -96,7 +100,11 @@ export function transitionContract(contract, nextState, metadata = {}) {
     ...contract,
     state: nextState,
     revisionsLeft: updatedRevisions,
-    deliverableUrl: metadata.deliverableUrl || contract.deliverableUrl,
+    deliverableUrl: metadata.deliverableUrl !== undefined ? metadata.deliverableUrl : contract.deliverableUrl,
+    deliverableFiles: metadata.deliverableFiles || contract.deliverableFiles || [],
+    moderationScore: metadata.moderationScore !== undefined ? metadata.moderationScore : (contract.moderationScore ?? null),
+    moderationDetails: metadata.moderationDetails || contract.moderationDetails || null,
+    timestampNotes: metadata.timestampNotes !== undefined ? metadata.timestampNotes : (contract.timestampNotes || ''),
     events: [...(contract.events || []), eventDoc],
     updatedAt: new Date().toISOString()
   };

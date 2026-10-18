@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { TopBar } from './components/navigation/TopBar';
 import { Sidebar } from './components/navigation/Sidebar';
+import { BreadcrumbNav } from './components/ui/BreadcrumbNav';
+import { ShieldAlert, ShieldCheck } from 'lucide-react';
 import { PortalSwitchTransition } from './components/navigation/PortalSwitchTransition';
 import { PublicDirectory } from './components/directory/PublicDirectory';
 import { CreatorDetailModal } from './components/directory/CreatorDetailModal';
@@ -65,6 +67,7 @@ import {
   getUserProfile, 
   fetchAllRegisteredCreators 
 } from './services/authService';
+import { destroyBrowserSession, bindBrowserSession } from './services/sessionSecurityService';
 import { doc, setDoc, onSnapshot } from 'firebase/firestore';
 import { db } from './config/firebaseConfig.js';
 import { getSavedCurrency, saveCurrency } from './services/currencyService';
@@ -220,12 +223,6 @@ export default function App() {
     return () => unsubscribeContracts();
   }, []);
 
-  const unreadMessagesCount = React.useMemo(() => {
-    return conversations.reduce((acc, conv) => {
-      const count = activePortal === 'brand' ? (conv.unreadForBrand || 0) : (conv.unreadForCreator || 0);
-      return acc + count;
-    }, 0);
-  }, [conversations, activePortal]);
 
   const [auditLogs, setAuditLogs] = useState(INITIAL_AUDIT_LOG);
   const [platformConfig, setPlatformConfig] = useState(INITIAL_PLATFORM_CONFIG);
@@ -246,6 +243,15 @@ export default function App() {
 
   // Modal State
   const [inspectedCreator, setInspectedCreator] = useState(null);
+  const [shieldNotice, setShieldNotice] = useState(null);
+
+  useEffect(() => {
+    const handleShieldLimit = (e) => {
+      setShieldNotice(e.detail?.error || 'Demo evaluation limit reached. Please sign in with Google to continue testing!');
+    };
+    window.addEventListener('nefra:shield_limit', handleShieldLimit);
+    return () => window.removeEventListener('nefra:shield_limit', handleShieldLimit);
+  }, []);
 
   // Real-time Firestore Credits & Transactions Subscription for current user / active role
   useEffect(() => {
@@ -297,21 +303,25 @@ export default function App() {
       if (user) {
         console.log(`%c🔐 [Auth] Active Google Session: ${user.email} (UID: ${user.uid})`, 'color: #3b82f6; font-weight: bold;');
         
+        // Immediately uplift demo rate limits & dismiss shield notice
+        setShieldNotice(null);
+
+        // Uplift and sync full user credits
+        const cCredits = typeof profile?.creatorCredits === 'number' 
+          ? profile.creatorCredits 
+          : (typeof profile?.credits === 'number' ? profile.credits : 50);
+        const bCredits = typeof profile?.brandCredits === 'number' 
+          ? profile.brandCredits 
+          : 250;
+        
+        setCreatorCredits(cCredits);
+        setBrandCredits(bCredits);
+
         // If onboarded user has a designated role, route directly
-        if (profile?.onboardingCompleted) {
-          if (profile.role) {
-            setActivePortal(profile.role);
-            if (profile.role === 'creator') setActiveRoute('directory');
-            else if (profile.role === 'brand') setActiveRoute('dashboard');
-          }
-          if (typeof profile.creatorCredits === 'number') {
-            setCreatorCredits(profile.creatorCredits);
-          } else if (typeof profile.credits === 'number') {
-            setCreatorCredits(profile.credits);
-          }
-          if (typeof profile.brandCredits === 'number') {
-            setBrandCredits(profile.brandCredits);
-          }
+        if (profile?.onboardingCompleted && profile.role) {
+          setActivePortal(profile.role);
+          if (profile.role === 'creator') setActiveRoute('directory');
+          else if (profile.role === 'brand') setActiveRoute('dashboard');
         }
       } else {
         console.log('%c🔓 [Auth] No active session. Rendering Landing Page.', 'color: #71717a;');
@@ -375,6 +385,70 @@ export default function App() {
       return true;
     });
   }, [campaigns, currentUser]);
+
+  // 4. Scoped Escrow Contracts per User and Portal (Guarantees zero overlap between separate accounts/browsers)
+  const creatorVisibleContracts = React.useMemo(() => {
+    if (currentUser?.uid) {
+      // Authenticated creator: strictly isolate to contracts belonging to this creator
+      return contracts.filter(c => {
+        return c.creatorId === currentUser.uid || 
+               c.creatorId === activeCreator?.id ||
+               (currentUser.email && c.creatorEmail?.toLowerCase() === currentUser.email.toLowerCase());
+      });
+    }
+    // Guest/demo mode: show demo creator contracts
+    return contracts.filter(c => c.creatorId === 'creator_01' || !c.creatorId);
+  }, [contracts, currentUser, activeCreator]);
+
+  const brandVisibleContracts = React.useMemo(() => {
+    if (currentUser?.uid) {
+      // Authenticated brand: strictly isolate to contracts belonging to this brand
+      return contracts.filter(c => {
+        return c.brandOrgId === currentUser.uid || 
+               (userProfile?.uid && c.brandOrgId === userProfile.uid) ||
+               (currentUser.email && c.brandEmail?.toLowerCase() === currentUser.email.toLowerCase());
+      });
+    }
+    // Guest/demo mode: show demo brand contracts
+    return contracts.filter(c => c.brandOrgId === 'brand_anker' || c.brandOrgId === 'brand_nord' || c.brandOrgId === 'brand_acme' || c.brandOrgId === 'brand_01');
+  }, [contracts, currentUser, userProfile]);
+
+  // 5. Scoped Conversations per User and Portal (Guarantees zero overlap between separate accounts/browsers)
+  const visibleConversations = React.useMemo(() => {
+    if (!currentUser?.uid) {
+      return conversations;
+    }
+    return conversations.filter(conv => {
+      if (activePortal === 'brand') {
+        return conv.brandOrgId === currentUser.uid || 
+               conv.brandOrgId === userProfile?.uid ||
+               (currentUser.email && conv.brandEmail?.toLowerCase() === currentUser.email.toLowerCase());
+      } else {
+        return conv.creatorId === currentUser.uid || 
+               conv.creatorId === activeCreator?.id ||
+               (currentUser.email && conv.creatorEmail?.toLowerCase() === currentUser.email.toLowerCase());
+      }
+    });
+  }, [conversations, currentUser, activePortal, userProfile, activeCreator]);
+
+  // 6. Scoped Campaigns for Brand Portal
+  const brandVisibleCampaigns = React.useMemo(() => {
+    if (currentUser?.uid && userProfile?.role === 'brand') {
+      const userCampaigns = campaigns.filter(c => c.brandOrgId === currentUser.uid || c.brandEmail === currentUser.email);
+      if (userCampaigns.length > 0) return userCampaigns;
+      // Provide initial marketplace benchmark campaigns if brand has not published yet
+      return campaigns.filter(c => c.brandOrgId === currentUser.uid || c.brandOrgId === 'brand_anker' || c.brandOrgId === 'brand_nord');
+    }
+    return campaigns;
+  }, [campaigns, currentUser, userProfile?.role]);
+
+  // 7. Unread Messages Count strictly for the active user's visible threads
+  const unreadMessagesCount = React.useMemo(() => {
+    return visibleConversations.reduce((acc, conv) => {
+      const count = activePortal === 'brand' ? (conv.unreadForBrand || 0) : (conv.unreadForCreator || 0);
+      return acc + count;
+    }, 0);
+  }, [visibleConversations, activePortal]);
 
   // Real-time Firestore sync for the active creator profile (skip if brand)
   useEffect(() => {
@@ -481,6 +555,13 @@ export default function App() {
       setCurrentUser(user);
       setUserProfile(profile);
 
+      setShieldNotice(null);
+      confetti({
+        particleCount: 80,
+        spread: 70,
+        origin: { y: 0.6 }
+      });
+
       if (profile?.onboardingCompleted && profile.role) {
         setActivePortal(profile.role);
         if (profile.role === 'creator') setActiveRoute('directory');
@@ -508,9 +589,14 @@ export default function App() {
   const handleSignOut = async () => {
     try {
       await signOutUser();
+      destroyBrowserSession();
       setCurrentUser(null);
       setUserProfile(null);
       setPendingRole(null);
+      setCreatorCredits(50);
+      setBrandCredits(250);
+      setContracts(INITIAL_CONTRACTS);
+      setConversations(INITIAL_CONVERSATIONS);
     } catch (err) {
       console.error('[App] Sign out error:', err);
     }
@@ -1169,13 +1255,22 @@ export default function App() {
           activePortal={activePortal}
           activeRoute={activeRoute}
           setActiveRoute={setActiveRoute}
-          unreadDisputesCount={contracts.filter(c => c.state === 'disputed').length}
+          unreadDisputesCount={(activePortal === 'creator' ? creatorVisibleContracts : brandVisibleContracts).filter(c => c.state === 'disputed').length}
           pendingReviewCount={creators.filter(c => c.status === 'pending_review').length}
           unreadMessagesCount={unreadMessagesCount}
         />
 
-        {/* Main Workspace Area */}
-        <main className={`flex-1 max-w-7xl mx-auto w-full flex flex-col ${activeRoute === 'messages' ? 'h-[calc(100vh-3.5rem)] p-3 sm:p-4 overflow-hidden' : 'p-4 sm:p-6 lg:p-8'}`}>
+        {/* Main Workspace Area with Breadcrumbs */}
+        <div className="flex-1 flex flex-col min-w-0">
+          <BreadcrumbNav
+            activePortal={activePortal}
+            activeRoute={activeRoute}
+            onNavigate={setActiveRoute}
+            inspectedCreator={inspectedCreator}
+            onClearInspectedCreator={() => setInspectedCreator(null)}
+          />
+
+          <main className={`flex-1 max-w-7xl mx-auto w-full flex flex-col ${activeRoute === 'messages' ? 'h-[calc(100vh-6.5rem)] p-3 sm:p-4 overflow-hidden' : 'p-4 sm:p-6 lg:p-8'}`}>
           {/* ================= CREATOR PORTAL ROUTES ================= */}
           {activePortal === 'creator' && (
             <>
@@ -1187,7 +1282,7 @@ export default function App() {
               )}
               {activeRoute === 'messages' && (
                 <GigChatInbox
-                  conversations={conversations}
+                  conversations={visibleConversations}
                   activeConversationId={activeConversationId}
                   activePortal="creator"
                   creators={creatorVisibleDirectory}
@@ -1202,7 +1297,7 @@ export default function App() {
               {activeRoute === 'dashboard' && (
                 <CreatorDashboard
                   creator={activeCreator}
-                  contracts={contracts}
+                  contracts={creatorVisibleContracts}
                   rateCards={rateCards}
                   campaigns={campaigns}
                   credits={creatorCredits}
@@ -1239,7 +1334,7 @@ export default function App() {
               )}
               {activeRoute === 'contracts' && (
                 <CreatorContracts
-                  contracts={contracts}
+                  contracts={creatorVisibleContracts}
                   onTransitionContract={handleTransitionContract}
                   onOpenDispute={handleOpenDispute}
                 />
@@ -1303,20 +1398,23 @@ export default function App() {
             <>
               {activeRoute === 'dashboard' && (
                 <BrandDashboard
-                  campaigns={campaigns}
-                  contracts={contracts}
+                  campaigns={brandVisibleCampaigns}
+                  contracts={brandVisibleContracts}
                   bids={bids}
                   creators={brandVisibleCreators}
+                  rateCards={rateCards}
                   brandCredits={brandCredits}
                   onNavigate={setActiveRoute}
                   onOpenChat={handleOpenChatWithCreator}
+                  onSelectCreator={(c) => setInspectedCreator(c)}
+                  onHirePackage={handleHirePackage}
                 />
               )}
               {activeRoute === 'content-creator' && (
                 <AIContentCreator
                   currentUser={currentUser}
                   userProfile={userProfile}
-                  campaigns={campaigns}
+                  campaigns={brandVisibleCampaigns}
                   activeCreator={activeCreator}
                   brandCredits={brandCredits}
                   onDeductBrandCredits={handleDeductBrandCredits}
@@ -1325,7 +1423,7 @@ export default function App() {
               )}
               {activeRoute === 'messages' && (
                 <GigChatInbox
-                  conversations={conversations}
+                  conversations={visibleConversations}
                   activeConversationId={activeConversationId}
                   activePortal="brand"
                   creators={brandVisibleCreators}
@@ -1339,12 +1437,15 @@ export default function App() {
               )}
               {activeRoute === 'campaigns' && (
                 <BrandCampaignsManager
-                  campaigns={campaigns}
+                  campaigns={brandVisibleCampaigns}
                   bids={bids}
                   creators={brandVisibleCreators}
+                  rateCards={rateCards}
                   onNavigate={setActiveRoute}
                   onAcceptBid={handleAcceptBid}
                   onOpenChat={handleOpenChatWithCreator}
+                  onSelectCreator={(c) => setInspectedCreator(c)}
+                  onHirePackage={handleHirePackage}
                 />
               )}
               {activeRoute === 'new-campaign' && (
@@ -1360,6 +1461,7 @@ export default function App() {
                 <CreatorMatchList
                   creators={brandVisibleCreators}
                   rateCards={rateCards}
+                  campaigns={brandVisibleCampaigns}
                   onSelectCreator={(c) => setInspectedCreator(c)}
                   onHirePackage={handleHirePackage}
                   onOpenChat={handleOpenChatWithCreator}
@@ -1367,14 +1469,14 @@ export default function App() {
               )}
               {activeRoute === 'contracts' && (
                 <BrandContracts
-                  contracts={contracts}
+                  contracts={brandVisibleContracts}
                   onTransitionContract={handleTransitionContract}
                   onOpenDispute={handleOpenDispute}
                 />
               )}
               {activeRoute === 'advisor' && (
                 <NefraSenseAdvisor
-                  campaigns={campaigns}
+                  campaigns={brandVisibleCampaigns}
                   creators={brandVisibleCreators}
                   brandCredits={brandCredits}
                   onDeductBrandCredits={handleDeductBrandCredits}
@@ -1437,6 +1539,7 @@ export default function App() {
             </>
           )}
         </main>
+        </div>
       </div>
 
       {/* Global 3-Video Scorecard & Creator Inspection Modal */}
@@ -1474,6 +1577,40 @@ export default function App() {
         onDeductBrandCredits={handleDeductBrandCredits}
         onOpenTopup={() => setActiveRoute('credits')}
       />
+
+      {/* Hackathon Anti-Abuse Shield Modal */}
+      {shieldNotice && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="max-w-md w-full bg-[#121215] border border-[#27272a] rounded-2xl p-6 shadow-2xl relative text-left">
+            <div className="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 mb-4">
+              <ShieldAlert size={24} />
+            </div>
+            <h3 className="text-lg font-bold text-white mb-2">Hackathon Evaluation Guard</h3>
+            <p className="text-sm text-[#a1a1aa] mb-6 leading-relaxed">
+              {shieldNotice}
+            </p>
+            <div className="flex items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setShieldNotice(null)}
+                className="px-4 py-2 rounded-lg text-xs font-medium text-[#71717a] hover:text-white transition-colors cursor-pointer"
+              >
+                Dismiss
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShieldNotice(null);
+                  handleGoogleSignIn('brand');
+                }}
+                className="px-5 py-2.5 rounded-lg text-xs font-semibold bg-[#3b82f6] hover:bg-[#2563eb] text-white transition-all shadow-lg shadow-blue-500/20 cursor-pointer flex items-center gap-2"
+              >
+                <span>Sign In with Google</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
